@@ -41,3 +41,5 @@
 #ifdef _AFXDLL
 #undef _AFXDLL
 #endif
+
+#include "resource.h"

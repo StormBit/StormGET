@@ -14,14 +14,16 @@ HANDLE g_hChildStd_IN_Wr = NULL;
 HANDLE g_hChildStd_OUT_Rd = NULL;
 HANDLE g_hChildStd_OUT_Wr = NULL;
 
+PROCESS_INFORMATION pi;
+
 HANDLE g_hInputFile = NULL;
 
 char cBuffer[BUFSIZE];
 char cBufferArchive[BUFSIZE];
 
-bool CheckOutput = false, Downloading = false;;
+bool CheckOutput = false, Downloading = false;
 
-int lolwat = 0;
+int BandcampDLPID = 0;
 
 UINT ParseOutput(LPVOID pParam) {
 	Downloading = true;
@@ -43,27 +45,76 @@ UINT ParseOutput(LPVOID pParam) {
 		CheckOutput = true;
 	}
 
+	BandcampDLPID = 0;
 	Downloading = false;
 
 	return 0;
 }
 
+HMODULE GetCurrentModuleHandle() {
+    HMODULE hMod = NULL;
+    GetModuleHandleExW(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,reinterpret_cast<LPCWSTR>(&GetCurrentModuleHandle),&hMod);
+     return hMod;
+}
+
 extern "C" _declspec(dllexport) bool ReimuGETPluginInit() {
+	HGLOBAL hResourceLoaded;  // handle to loaded resource
+    HRSRC   hRes;              // handle/ptr to res. info.
+    char    *lpResLock;        // pointer to resource data
+    DWORD   dwSizeRes;
+    hRes = FindResource(GetCurrentModuleHandle(),MAKEINTRESOURCE(IDR_BCDL),CString(L"BIN"));
+    hResourceLoaded = LoadResource(GetCurrentModuleHandle(), hRes);
+    lpResLock = (char *) LockResource(hResourceLoaded);
+    dwSizeRes = SizeofResource(GetCurrentModuleHandle(), hRes);
+	FILE * outputRes;
+	if(outputRes = _wfopen(L"bandcampdl.exe", L"wb")) {
+		fwrite ((const char *) lpResLock,1,dwSizeRes,outputRes);
+		fclose(outputRes);
+	}
+
 	return TRUE;
 }
 
 extern "C" _declspec(dllexport) bool ReimuGETPluginExit() {
+	STARTUPINFO si;
+	PROCESS_INFORMATION pi;
+
+	ZeroMemory( &si, sizeof(si) );
+	si.cb = sizeof(si);
+	ZeroMemory( &pi, sizeof(pi) );
+
+	if (BandcampDLPID != 0) {
+		CString pid;
+		pid.Format(L"%d",BandcampDLPID);
+
+		CreateProcess(NULL, CString(L"taskkill.exe /F /PID " + pid).GetBuffer(), NULL, NULL, false, CREATE_NO_WINDOW, NULL, NULL, &si, &pi);
+		WaitForSingleObject(pi.hProcess, INFINITE);
+	}
+
+	DeleteFile(L"bandcampdl.exe");
+
 	return TRUE;
 }
 
 extern "C" _declspec(dllexport) bool ReimuGETPluginConfigure() {
-	AfxMessageBox(L"Configuration window goes here");
+	AfxMessageBox(L"The plugin host_bandcampdl requires no configuration!");
 	return TRUE;
 }
 
-extern "C" _declspec(dllexport) PROCESS_INFORMATION ReimuGETPluginDownload(CString FileURL, CString DownloadDir) {
+extern "C" _declspec(dllexport) bool ReimuGETPluginStillRunning() {
+	DWORD exitCode;
+
+	GetExitCodeProcess(pi.hProcess,&exitCode);
+
+	if (exitCode != STILL_ACTIVE) {
+		return false;
+	}
+
+	return TRUE;
+}
+
+extern "C" _declspec(dllexport) void ReimuGETPluginDownload(CString FileURL, CString DownloadDir) {
 	STARTUPINFO si;
-	PROCESS_INFORMATION pi;
 	SECURITY_ATTRIBUTES sa; 
 
 	sa.nLength = sizeof(SECURITY_ATTRIBUTES); 
@@ -100,17 +151,15 @@ extern "C" _declspec(dllexport) PROCESS_INFORMATION ReimuGETPluginDownload(CStri
 	si.dwFlags = STARTF_USESHOWWINDOW | STARTF_USESTDHANDLES; // STARTF_USESTDHANDLES is Required.
 	si.wShowWindow = SW_HIDE; // Prevents cmd window from flashing. Requires STARTF_USESHOWWINDOW in dwFlags.
 
-	int Value = CreateProcess(NULL, CString(L"Plugins\\host_bandcamp\\bandcampdl.exe " + FileURL).GetBuffer(), NULL, NULL, true, 0, NULL, NULL, &si, &pi);
+	if (GetFileAttributes(DownloadDir.GetBuffer()) != INVALID_FILE_ATTRIBUTES) {
+		int Value = CreateProcess(NULL, CString(L"bandcampdl.exe " + FileURL).GetBuffer(), NULL, NULL, true, 0, NULL, DownloadDir, &si, &pi);
+	} else {
+		int Value = CreateProcess(NULL, CString(L"bandcampdl.exe " + FileURL).GetBuffer(), NULL, NULL, true, 0, NULL, NULL, &si, &pi);
+	}
+
+	BandcampDLPID = pi.dwProcessId;
 
 	CWinThread* pParseOutput = AfxBeginThread(ParseOutput,THREAD_PRIORITY_NORMAL);
-
-	//GetExitCodeProcess(pi.hProcess,&exitCode);
-
-	//if (exitCode == 0) {
-	//	return true;
-	//}
-
-	return pi;
 }
 
 extern "C" _declspec(dllexport) char* ReimuGETPluginGetStatus() {
@@ -128,12 +177,46 @@ extern "C" _declspec(dllexport) char* ReimuGETPluginGetStatus() {
 }
 
 extern "C" _declspec(dllexport) int ReimuGETPluginGetProgress() {
+	char cProgressDisect[4096];
+	ZeroMemory(cProgressDisect, 4096);
+
+	int cStringLength;
+	strcpy(cProgressDisect,cBufferArchive);
+	cStringLength = strlen(cProgressDisect);
+
+	if (cProgressDisect[cStringLength - 1] == '.' && cProgressDisect[cStringLength - 2] == '.' && cProgressDisect[cStringLength - 3] == '.' && cProgressDisect[cStringLength - 4] == ')') {
+		int LastOpen;
+		int LastClose;
+
+		for(int i = 0; cProgressDisect[i]; i++) {
+			if (cProgressDisect[i] == '(') LastOpen = i;
+			if (cProgressDisect[i] == ')') LastClose = i;
+		}
+
+		for(int i = 0; i < LastOpen; i++) {
+			memmove (cProgressDisect, cProgressDisect+1, strlen (cProgressDisect+1));
+			cProgressDisect[strlen(cProgressDisect) - 1] = 0;
+		}
+
+		memmove (cProgressDisect, cProgressDisect+1, strlen (cProgressDisect+1));
+		cProgressDisect[strlen(cProgressDisect) - 5] = 0;
+
+		char * cProgressToken;
+		int CurrTrack, TotalTracks;
+
+		cProgressToken = strtok(cProgressDisect,"/");
+		CurrTrack = atoi(cProgressToken);
+
+		cProgressToken = strtok(NULL,"/");
+		TotalTracks = atoi(cProgressToken);
+
+		CurrTrack--;
+		TotalTracks--;
+
+		return (CurrTrack * 100) / TotalTracks;
+	}
+
 	return 0;
-	
-
-
-	lolwat++;
-	return lolwat;
 }
 
 extern "C" _declspec(dllexport) char * ReimuGETPluginEnumerateConditions() {

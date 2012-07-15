@@ -41,11 +41,11 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
-    <OutDir>$(SolutionDir)$(Configuration)\Plugins\</OutDir>
+    <OutDir>$(SolutionDir)$(Configuration)\</OutDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
-    <OutDir>$(SolutionDir)$(Configuration)\Plugins\</OutDir>
+    <OutDir>$(SolutionDir)$(Configuration)\</OutDir>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -68,10 +68,18 @@
       <PreprocessorDefinitions>_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>$(IntDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ResourceCompile>
+    <PostBuildEvent>
+      <Command>move /Y "$(SolutionDir)$(ConfigurationName)\$(TargetFileName)" "$(SolutionDir)ReimuGET\res\host_bandcamp.dll"
+</Command>
+    </PostBuildEvent>
+    <PreBuildEvent>
+      <Command>move /Y "$(TargetDir)bandcampdl.exe" "$(SolutionDir)host_bandcamp\res\bandcampdl.exe"
+</Command>
+    </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
-      <WarningLevel>Level3</WarningLevel>
+      <WarningLevel>Level2</WarningLevel>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <Optimization>MaxSpeed</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
@@ -94,15 +102,22 @@
       <PreprocessorDefinitions>NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>$(IntDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ResourceCompile>
+    <PostBuildEvent>
+      <Command>del "$(TargetDir)"*.exp
+del "$(TargetDir)"*.lib
+del "$(TargetDir)"*.pdb
+
+move /Y "$(SolutionDir)$(ConfigurationName)\$(TargetFileName)" "$(SolutionDir)ReimuGET\res\host_bandcamp.dll"
+</Command>
+    </PostBuildEvent>
+    <PreBuildEvent>
+      <Command>move /Y "$(TargetDir)bandcampdl.exe" "$(SolutionDir)host_bandcamp\res\bandcampdl.exe"
+</Command>
+    </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
     <None Include="host_bandcamp.def" />
-    <None Include="res\bandcampdl.exe" />
     <None Include="res\host_bandcamp.rc2" />
-    <None Include="res\IdSharp.Common.dll" />
-    <None Include="res\IdSharp.Tagging.dll" />
-    <None Include="res\Newtonsoft.Json.dll" />
-    <None Include="res\zlib.net.dll" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="dllmain.cpp">

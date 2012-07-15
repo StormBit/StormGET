@@ -16,7 +16,7 @@ public:
 	CReimuGETDlg(CWnd* pParent = NULL);	// standard constructor
 
 // Dialog Data
-	enum { IDD = IDD_ReimuGET_DIALOG };
+	enum { IDD = IDD_MAIN };
 
 	protected:
 	virtual void DoDataExchange(CDataExchange* pDX);	// DDX/DDV support
@@ -50,4 +50,7 @@ public:
 
 	afx_msg void OnHelpAbout();
 	afx_msg void OnAddFromClipboard();
+	afx_msg void OnStopDownload();
+	afx_msg void OnReset();
+	afx_msg void OnPluginConfig();
 };

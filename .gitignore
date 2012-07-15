@@ -5,4 +5,5 @@ ipch
 *.user
 *.sdf
 *.aps
-
+host_bandcamp.dll
+bandcampdl.exe

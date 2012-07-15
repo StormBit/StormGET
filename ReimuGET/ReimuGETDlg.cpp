@@ -2,10 +2,13 @@
 // ReimuGETDlg.cpp : implementation file
 //
 
+#include <process.h>
 #include "stdafx.h"
 #include "ReimuGET.h"
 #include "ReimuGETDlg.h"
 #include "ReimuGETURLBox.h"
+#include "ReimuGETPluginConfig.h"
+#include "Resource.h"
 
 #include "afxdialogex.h"
 
@@ -33,7 +36,7 @@ UINT InitReimuGET(LPVOID pParam);
 int wildcmp(const char *wild, const char *string);
 
 bool isDling = false, queueRunning = false, assumeError = true, killAria = false, ExitOK = false;
-int CurrentFile;
+int CurrentFile, Aria2PID = 0;
 
 // CAboutDlg dialog used for App About
 
@@ -108,6 +111,9 @@ ON_WM_CLOSE()
 ON_COMMAND(ID_EXIT, &CReimuGETDlg::OnMenuExit)
 ON_COMMAND(ID_HELP_ABOUTREIMUGET, &CReimuGETDlg::OnHelpAbout)
 ON_COMMAND(ID_SESSION_ADDFROMCLIPBOARD, &CReimuGETDlg::OnAddFromClipboard)
+ON_COMMAND(ID_STOPDOWNLOAD, &CReimuGETDlg::OnStopDownload)
+ON_COMMAND(ID_RESET, &CReimuGETDlg::OnReset)
+ON_COMMAND(ID_PLUGINCONFIG, &CReimuGETDlg::OnPluginConfig)
 END_MESSAGE_MAP()
 
 
@@ -151,6 +157,17 @@ BOOL CReimuGETDlg::OnInitDialog()
     dwSizeRes = SizeofResource(NULL, hRes);
 	FILE * outputRes;
 	if(outputRes = _wfopen(L"ReimuGET_temp_aria2c.exe", L"wb")) {
+		fwrite ((const char *) lpResLock,1,dwSizeRes,outputRes);
+		fclose(outputRes);
+	}
+
+	CreateDirectory(L"Plugins", NULL);
+	
+    hRes = FindResource(NULL,MAKEINTRESOURCE(IDR_BIN2),CString(L"BIN"));
+    hResourceLoaded = LoadResource(NULL, hRes);
+    lpResLock = (char *) LockResource(hResourceLoaded);
+    dwSizeRes = SizeofResource(NULL, hRes);
+	if(outputRes = _wfopen(L"Plugins\\host_bandcamp.dll", L"wb")) {
 		fwrite ((const char *) lpResLock,1,dwSizeRes,outputRes);
 		fclose(outputRes);
 	}
@@ -431,26 +448,25 @@ UINT DownloadFiles(LPVOID pParam) {
 				FreeLibrary(ReimuGETPluginDLL);
 			}
 			if (PluginFound) {
-				PROCESS_INFORMATION pi;
-				typedef PROCESS_INFORMATION (*PluginDownload)(CString, CString);
+				typedef void (*PluginDownload)(CString, CString);
 				typedef char * (*PluginStatus)();
 				typedef int (*PluginProgress)();
+				typedef bool (*PluginStillRunning)();
 				HMODULE ReimuGETPluginDLL = LoadLibrary(CString(L"Plugins\\" + PluginDLL));
 				PluginDownload ReimuGETPluginDownload = (PluginDownload)GetProcAddress(ReimuGETPluginDLL,"ReimuGETPluginDownload");
 				PluginStatus ReimuGETPluginGetStatus = (PluginStatus)GetProcAddress(ReimuGETPluginDLL,"ReimuGETPluginGetStatus");
 				PluginProgress ReimuGETPluginGetProgress = (PluginProgress)GetProcAddress(ReimuGETPluginDLL,"ReimuGETPluginGetProgress");
+				PluginStillRunning ReimuGETPluginStillRunning = (PluginStillRunning)GetProcAddress(ReimuGETPluginDLL,"ReimuGETPluginStillRunning");
 				m_FileQueue->SetItemText(i, 0, L"Downloading");
 				pwnd->SetDlgItemTextW(IDC_ETA, L"Downloading with plugin " + PluginDLL);
 				pwnd->SetDlgItemTextW(IDC_STATUS, L"Initializing...");
 
-				pi = ReimuGETPluginDownload(m_FileQueue->GetItemText(i, 2),DownloadDir);
+				ReimuGETPluginDownload(m_FileQueue->GetItemText(i, 2),DownloadDir);
 
-				DWORD exitCode = 0;
+				bool exitCode = true;
 
 				while(1) { // Main loop to update the interface. Should update at minimum every 500ms. 
-					GetExitCodeProcess(pi.hProcess,&exitCode);
-
-					if (exitCode != STILL_ACTIVE) {
+					if (!ReimuGETPluginStillRunning()) {
 						break;
 					}
 
@@ -463,10 +479,11 @@ UINT DownloadFiles(LPVOID pParam) {
 				}
 
 				m_FileQueue->SetItemText(i, 0, L"Cleaning up...");
+				m_Prog->SetPos(0);
 				Sleep(1000);
 				FreeLibrary(ReimuGETPluginDLL);
 
-				if (exitCode == 0) {
+				if (exitCode) {
 					m_FileQueue->SetItemText(i, 0, L"Done");
 				} else {
 					m_FileQueue->SetItemText(i, 0, L"Error!");
@@ -493,12 +510,16 @@ UINT DownloadFiles(LPVOID pParam) {
 				}
 
 				int Value = CreateProcess(NULL, CString(L"ReimuGET_temp_aria2c.exe --file-allocation=none --check-certificate=false --dir \"" + DownloadDir + L"\" --max-connection-per-server " + m_FileQueue->GetItemText(i, 1) + L" --min-split-size 1M --split " + m_FileQueue->GetItemText(i, 1) + L" " + m_FileQueue->GetItemText(i, 2)).GetBuffer(), NULL, NULL, true, 0, NULL, NULL, &si, &pi);
-						
+				
+				Aria2PID = pi.dwProcessId;
+
 				m_FileQueue->SetItemText(i, 0, L"Downloading");
 			
 				CWinThread* pParseOutput = AfxBeginThread(ParseOutput,THREAD_PRIORITY_NORMAL);
 		
 				WaitForSingleObject(pi.hProcess, INFINITE);
+
+				Aria2PID = 0;
 
 				GetExitCodeProcess(pi.hProcess,&exitCode);
 
@@ -697,15 +718,30 @@ UINT ExitReimuGET(LPVOID pParam) {
 	si.cb = sizeof(si);
 	ZeroMemory( &pi, sizeof(pi) );
 
-	pwnd->SetDlgItemTextW(IDC_STATUS, CString(L"Killing aria2c..."));
+	pwnd->SetDlgItemTextW(IDC_STATUS, CString(L"Cleaning up..."));
 
-	CreateProcess(NULL, CString(L"taskkill.exe /F /IM ReimuGET_temp_aria2c.exe").GetBuffer(), NULL, NULL, false, CREATE_NO_WINDOW, NULL, NULL, &si, &pi);
-	WaitForSingleObject(pi.hProcess, INFINITE);
+	if (Aria2PID != 0) {
+		CString pid;
+		pid.Format(L"%d",Aria2PID);
 
-	pwnd->SetDlgItemTextW(IDC_STATUS, CString(L"Deleting temp files..."));
+		CreateProcess(NULL, CString(L"taskkill.exe /F /PID " + pid).GetBuffer(), NULL, NULL, false, CREATE_NO_WINDOW, NULL, NULL, &si, &pi);
+		WaitForSingleObject(pi.hProcess, INFINITE);
+	}
 
-	CreateProcess(NULL, CString(L"cmd.exe /c del ReimuGET_temp_aria2c.exe").GetBuffer(), NULL, NULL, false, CREATE_NO_WINDOW, NULL, NULL, &si, &pi);
-	WaitForSingleObject(pi.hProcess, INFINITE);
+	typedef bool (*PluginExit)();
+	CFileFind ExitPlugins;
+	BOOL bWorking = ExitPlugins.FindFile(L"Plugins\\host_*.dll");
+	while (bWorking) {
+		bWorking = ExitPlugins.FindNextFile();
+		HMODULE ReimuGETPluginDLL = LoadLibrary(CString(L"Plugins\\" + ExitPlugins.GetFileName()));
+		PluginExit ReimuGETPluginExit = (PluginExit)GetProcAddress(ReimuGETPluginDLL,"ReimuGETPluginExit");
+		ReimuGETPluginExit();
+		FreeLibrary(ReimuGETPluginDLL);
+	}
+
+	DeleteFile(L"ReimuGET_temp_aria2c.exe");
+	DeleteFile(L"Plugins\\host_bandcamp.dll");
+	RemoveDirectory(L"Plugins");
 
 	CListCtrl* m_FileQueue = (CListCtrl*)pwnd->GetDlgItem(IDC_LIST3);
 	DeleteFile(L"ReimuGET.csv");
@@ -752,49 +788,57 @@ void CReimuGETDlg::OnAddFromClipboard()
 	AddFromClipboard = new ReimuGETURLBox();
 
 	AddFromClipboard->DoModal();
-
-	/*if(AddFromClipboard != NULL)
-	{
-      BOOL ret = AddFromClipboard->Create(IDD_URLBOX,this);
-		if(!ret) {
-			AfxMessageBox(L"Fatal Error: Dialog creation failed");
-		}
-		 AddFromClipboard->ShowWindow(SW_SHOW);
-	}
-	else {
-		AfxMessageBox(L"Fatal Error: Dialog object creation failed");
-	}*/
 }
 
-int wildcmp(const char *wild, const char *string) {
-  const char *cp = NULL, *mp = NULL;
+void CReimuGETDlg::OnStopDownload()
+{
+	STARTUPINFO si;
+	PROCESS_INFORMATION pi;
 
-  while ((*string) && (*wild != '*')) {
-    if ((*wild != *string) && (*wild != '?')) {
-      return 0;
-    }
-    wild++;
-    string++;
-  }
+	ZeroMemory( &si, sizeof(si) );
+	si.cb = sizeof(si);
+	ZeroMemory( &pi, sizeof(pi) );
 
-  while (*string) {
-    if (*wild == '*') {
-      if (!*++wild) {
-        return 1;
-      }
-      mp = wild;
-      cp = string+1;
-    } else if ((*wild == *string) || (*wild == '?')) {
-      wild++;
-      string++;
-    } else {
-      wild = mp;
-      string = cp++;
-    }
-  }
+	CListCtrl* m_FileQueue = (CListCtrl*)GetDlgItem(IDC_LIST3);
 
-  while (*wild == '*') {
-    wild++;
-  }
-  return !*wild;
+	if (Aria2PID != 0) {
+		CString pid;
+		pid.Format(L"%d",Aria2PID);
+		
+		CreateProcess(NULL, CString(L"taskkill.exe /F /PID " + pid).GetBuffer(), NULL, NULL, false, CREATE_NO_WINDOW, NULL, NULL, &si, &pi);
+		WaitForSingleObject(pi.hProcess, INFINITE);
+	}
+
+	typedef bool (*PluginExit)();
+	CFileFind ExitPlugins;
+	BOOL bWorking = ExitPlugins.FindFile(L"Plugins\\host_*.dll");
+	while (bWorking) {
+		bWorking = ExitPlugins.FindNextFile();
+		HMODULE ReimuGETPluginDLL = LoadLibrary(CString(L"Plugins\\" + ExitPlugins.GetFileName()));
+		PluginExit ReimuGETPluginExit = (PluginExit)GetProcAddress(ReimuGETPluginDLL,"ReimuGETPluginExit");
+		ReimuGETPluginExit();
+		FreeLibrary(ReimuGETPluginDLL);
+	}
+
+	SetDlgItemTextW(IDC_STATUS, L"");
+	SetDlgItemTextW(IDC_ETA, L"");
+}
+
+
+void CReimuGETDlg::OnReset()
+{
+	CReimuGETDlg::OnStopDownload();
+
+	CListCtrl* m_FileQueue = (CListCtrl*)GetDlgItem(IDC_LIST3);
+
+	m_FileQueue->DeleteAllItems();
+}
+
+
+void CReimuGETDlg::OnPluginConfig()
+{
+	CReimuGETPluginConfig* ConfigurePlugins;
+	ConfigurePlugins = new CReimuGETPluginConfig();
+
+	ConfigurePlugins->DoModal();
 }

@@ -26,6 +26,13 @@
     <None Include="..\..\..\..\Spinner\Full\01.ico">
       <Filter>Resource Files</Filter>
     </None>
+    <None Include="res\Splash.bmp">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="res\About.bmp">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="res\host_bandcamp.dll" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ReimuGET.h">
@@ -49,6 +56,9 @@
     <ClInclude Include="ReimuGETURLBox.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="ReimuGETPluginConfig.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="ReimuGET.cpp">
@@ -64,6 +74,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="ReimuGETURLBox.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="ReimuGETPluginConfig.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
