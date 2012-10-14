@@ -2,7 +2,7 @@
 
 About
 ------------
-ReimuGET uses the awesome command-line downloader aria2, and includes an advanced queuing system.
+StormGET uses the awesome command-line downloader aria2, and includes an advanced queuing system.
 
 Plugins
 ------------
