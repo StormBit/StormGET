@@ -2,15 +2,15 @@
 #include "afxwin.h"
 
 
-// ReimuGETURLBox dialog
+// StormGETURLBox dialog
 
-class ReimuGETURLBox : public CDialogEx
+class StormGETURLBox : public CDialogEx
 {
-	DECLARE_DYNAMIC(ReimuGETURLBox)
+	DECLARE_DYNAMIC(StormGETURLBox)
 
 public:
-	ReimuGETURLBox(CWnd* pParent = NULL);   // standard constructor
-	virtual ~ReimuGETURLBox();
+	StormGETURLBox(CWnd* pParent = NULL);   // standard constructor
+	virtual ~StormGETURLBox();
 
 // Dialog Data
 	enum { IDD = IDD_URLBOX };

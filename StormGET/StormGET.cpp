@@ -1,26 +1,26 @@
 
-// ReimuGET.cpp : Defines the class behaviors for the application.
+// StormGET.cpp : Defines the class behaviors for the application.
 //
 
 #include "stdafx.h"
-#include "ReimuGET.h"
-#include "ReimuGETDlg.h"
+#include "StormGET.h"
+#include "StormGETDlg.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
 #endif
 
 
-// CReimuGETApp
+// CStormGETApp
 
-BEGIN_MESSAGE_MAP(CReimuGETApp, CWinApp)
+BEGIN_MESSAGE_MAP(CStormGETApp, CWinApp)
 	ON_COMMAND(ID_HELP, &CWinApp::OnHelp)
 END_MESSAGE_MAP()
 
 
-// CReimuGETApp construction
+// CStormGETApp construction
 
-CReimuGETApp::CReimuGETApp()
+CStormGETApp::CStormGETApp()
 {
 	// support Restart Manager
 	m_dwRestartManagerSupportFlags = AFX_RESTART_MANAGER_SUPPORT_RESTART;
@@ -30,14 +30,14 @@ CReimuGETApp::CReimuGETApp()
 }
 
 
-// The one and only CReimuGETApp object
+// The one and only CStormGETApp object
 
-CReimuGETApp theApp;
+CStormGETApp theApp;
 
 
-// CReimuGETApp initialization
+// CStormGETApp initialization
 
-BOOL CReimuGETApp::InitInstance()
+BOOL CStormGETApp::InitInstance()
 {
 	// InitCommonControlsEx() is required on Windows XP if an application
 	// manifest specifies use of ComCtl32.dll version 6 or later to enable
@@ -64,9 +64,9 @@ BOOL CReimuGETApp::InitInstance()
 	// Change the registry key under which our settings are stored
 	// TODO: You should modify this string to be something appropriate
 	// such as the name of your company or organization
-	SetRegistryKey(_T("ReimuSoft"));
+	SetRegistryKey(_T("StormSoft"));
 
-	CReimuGETDlg dlg;
+	CStormGETDlg dlg;
 	m_pMainWnd = &dlg;
 	INT_PTR nResponse = dlg.DoModal();
 	if (nResponse == IDOK)

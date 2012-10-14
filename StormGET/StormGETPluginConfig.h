@@ -1,15 +1,15 @@
 #pragma once
 
 
-// CReimuGETPluginConfig dialog
+// CStormGETPluginConfig dialog
 
-class CReimuGETPluginConfig : public CDialog
+class CStormGETPluginConfig : public CDialog
 {
-	DECLARE_DYNAMIC(CReimuGETPluginConfig)
+	DECLARE_DYNAMIC(CStormGETPluginConfig)
 
 public:
-	CReimuGETPluginConfig(CWnd* pParent = NULL);   // standard constructor
-	virtual ~CReimuGETPluginConfig();
+	CStormGETPluginConfig(CWnd* pParent = NULL);   // standard constructor
+	virtual ~CStormGETPluginConfig();
 
 // Dialog Data
 	enum { IDD = IDD_PLUGINCONFIG };

@@ -1,5 +1,5 @@
 
-// ReimuGET.h : main header file for the PROJECT_NAME application
+// StormGET.h : main header file for the PROJECT_NAME application
 //
 
 #pragma once
@@ -11,14 +11,14 @@
 #include "resource.h"		// main symbols
 
 
-// CReimuGETApp:
-// See ReimuGET.cpp for the implementation of this class
+// CStormGETApp:
+// See StormGET.cpp for the implementation of this class
 //
 
-class CReimuGETApp : public CWinApp
+class CStormGETApp : public CWinApp
 {
 public:
-	CReimuGETApp();
+	CStormGETApp();
 
 // Overrides
 public:
@@ -29,4 +29,4 @@ public:
 	DECLARE_MESSAGE_MAP()
 };
 
-extern CReimuGETApp theApp;
+extern CStormGETApp theApp;

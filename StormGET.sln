@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 11.00
 # Visual Studio 2010
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ReimuGET", "ReimuGET\ReimuGET.vcxproj", "{FF75B961-697E-4BED-BEA4-E3C3E1B7F3D6}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "StormGET", "StormGET\StormGET.vcxproj", "{FF75B961-697E-4BED-BEA4-E3C3E1B7F3D6}"
 	ProjectSection(ProjectDependencies) = postProject
 		{8BA38C19-F490-46BE-A50A-D728BDD4FD01} = {8BA38C19-F490-46BE-A50A-D728BDD4FD01}
 	EndProjectSection

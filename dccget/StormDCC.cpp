@@ -1,4 +1,4 @@
-#include "ReimuDCC.h"
+#include "StormDCC.h"
 
 #define CHUNKSIZE 1024
 
@@ -69,7 +69,7 @@ int main(int argc, char *argv[]) {
     int bRecv;
     PIRCMSG sMessage;
 
-	cout << "ReimuGET DCC Client 1.0a1\n\n * Connecting to server " << ircServer << ":" << ircPort << "... ";
+	cout << "StormGET DCC Client 1.0a1\n\n * Connecting to server " << ircServer << ":" << ircPort << "... ";
 
 	for(int i = 1; i < (80 - (37 + sizeof(ircServer) + sizeof(ircPort))); i++) {
 		cout << " ";

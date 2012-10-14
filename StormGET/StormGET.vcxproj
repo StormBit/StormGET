@@ -12,7 +12,7 @@
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{FF75B961-697E-4BED-BEA4-E3C3E1B7F3D6}</ProjectGuid>
-    <RootNamespace>ReimuGET</RootNamespace>
+    <RootNamespace>StormGET</RootNamespace>
     <Keyword>MFCProj</Keyword>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
@@ -104,25 +104,24 @@ if $(ConfigurationName) == Release "$(SolutionDir)Libraries\upx.exe" --best --lz
     <None Include="res\About.bmp" />
     <None Include="res\aria2c.exe" />
     <None Include="res\host_bandcamp.dll" />
-    <None Include="res\ReimuGET.ico" />
-    <None Include="res\ReimuGET.rc2" />
-    <None Include="res\Splash.bmp" />
+    <None Include="res\StormGET.ico" />
+    <None Include="res\StormGET.rc2" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="ReimuGET.h" />
-    <ClInclude Include="ReimuGETDlg.h" />
-    <ClInclude Include="ReimuGETPluginConfig.h" />
-    <ClInclude Include="ReimuGETURLBox.h" />
+    <ClInclude Include="StormGET.h" />
+    <ClInclude Include="StormGETDlg.h" />
+    <ClInclude Include="StormGETPluginConfig.h" />
+    <ClInclude Include="StormGETURLBox.h" />
     <ClInclude Include="Resource.h" />
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="targetver.h" />
     <ClInclude Include="TrayDialog.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="ReimuGET.cpp" />
-    <ClCompile Include="ReimuGETDlg.cpp" />
-    <ClCompile Include="ReimuGETPluginConfig.cpp" />
-    <ClCompile Include="ReimuGETURLBox.cpp" />
+    <ClCompile Include="StormGET.cpp" />
+    <ClCompile Include="StormGETDlg.cpp" />
+    <ClCompile Include="StormGETPluginConfig.cpp" />
+    <ClCompile Include="StormGETURLBox.cpp" />
     <ClCompile Include="stdafx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
@@ -130,14 +129,14 @@ if $(ConfigurationName) == Release "$(SolutionDir)Libraries\upx.exe" --best --lz
     <ClCompile Include="TrayDialog.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ResourceCompile Include="ReimuGET.rc" />
+    <ResourceCompile Include="StormGET.rc" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
   <ProjectExtensions>
     <VisualStudio>
-      <UserProperties RESOURCE_FILE="ReimuGET.rc" />
+      <UserProperties RESOURCE_FILE="StormGET.rc" />
     </VisualStudio>
   </ProjectExtensions>
 </Project>

@@ -57,7 +57,7 @@ HMODULE GetCurrentModuleHandle() {
      return hMod;
 }
 
-extern "C" _declspec(dllexport) bool ReimuGETPluginInit() {
+extern "C" _declspec(dllexport) bool StormGETPluginInit() {
 	HGLOBAL hResourceLoaded;  // handle to loaded resource
     HRSRC   hRes;              // handle/ptr to res. info.
     char    *lpResLock;        // pointer to resource data
@@ -75,7 +75,7 @@ extern "C" _declspec(dllexport) bool ReimuGETPluginInit() {
 	return TRUE;
 }
 
-extern "C" _declspec(dllexport) bool ReimuGETPluginExit() {
+extern "C" _declspec(dllexport) bool StormGETPluginExit() {
 	STARTUPINFO si;
 	PROCESS_INFORMATION pi;
 
@@ -96,12 +96,12 @@ extern "C" _declspec(dllexport) bool ReimuGETPluginExit() {
 	return TRUE;
 }
 
-extern "C" _declspec(dllexport) bool ReimuGETPluginConfigure() {
+extern "C" _declspec(dllexport) bool StormGETPluginConfigure() {
 	AfxMessageBox(L"The plugin host_bandcampdl requires no configuration!");
 	return TRUE;
 }
 
-extern "C" _declspec(dllexport) bool ReimuGETPluginStillRunning() {
+extern "C" _declspec(dllexport) bool StormGETPluginStillRunning() {
 	DWORD exitCode;
 
 	GetExitCodeProcess(pi.hProcess,&exitCode);
@@ -113,7 +113,7 @@ extern "C" _declspec(dllexport) bool ReimuGETPluginStillRunning() {
 	return TRUE;
 }
 
-extern "C" _declspec(dllexport) void ReimuGETPluginDownload(CString FileURL, CString DownloadDir) {
+extern "C" _declspec(dllexport) void StormGETPluginDownload(CString FileURL, CString DownloadDir) {
 	STARTUPINFO si;
 	SECURITY_ATTRIBUTES sa; 
 
@@ -162,7 +162,7 @@ extern "C" _declspec(dllexport) void ReimuGETPluginDownload(CString FileURL, CSt
 	CWinThread* pParseOutput = AfxBeginThread(ParseOutput,THREAD_PRIORITY_NORMAL);
 }
 
-extern "C" _declspec(dllexport) char* ReimuGETPluginGetStatus() {
+extern "C" _declspec(dllexport) char* StormGETPluginGetStatus() {
 	if (!CheckOutput) {
 		Sleep(500);
 	}
@@ -176,7 +176,7 @@ extern "C" _declspec(dllexport) char* ReimuGETPluginGetStatus() {
 	return cBufferArchive;
 }
 
-extern "C" _declspec(dllexport) int ReimuGETPluginGetProgress() {
+extern "C" _declspec(dllexport) int StormGETPluginGetProgress() {
 	char cProgressDisect[4096];
 	ZeroMemory(cProgressDisect, 4096);
 
@@ -219,6 +219,6 @@ extern "C" _declspec(dllexport) int ReimuGETPluginGetProgress() {
 	return 0;
 }
 
-extern "C" _declspec(dllexport) char * ReimuGETPluginEnumerateConditions() {
+extern "C" _declspec(dllexport) char * StormGETPluginEnumerateConditions() {
 	return "http://*.bandcamp.com/*";
 }

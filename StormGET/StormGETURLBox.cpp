@@ -1,39 +1,39 @@
-// ReimuGETURLBox.cpp : implementation file
+// StormGETURLBox.cpp : implementation file
 //
 
 #include "stdafx.h"
-#include "ReimuGET.h"
-#include "ReimuGETURLBox.h"
+#include "StormGET.h"
+#include "StormGETURLBox.h"
 #include "afxdialogex.h"
 
 
-// ReimuGETURLBox dialog
+// StormGETURLBox dialog
 
-IMPLEMENT_DYNAMIC(ReimuGETURLBox, CDialogEx)
+IMPLEMENT_DYNAMIC(StormGETURLBox, CDialogEx)
 
-ReimuGETURLBox::ReimuGETURLBox(CWnd* pParent /*=NULL*/)
-	: CDialogEx(ReimuGETURLBox::IDD, pParent)
+StormGETURLBox::StormGETURLBox(CWnd* pParent /*=NULL*/)
+	: CDialogEx(StormGETURLBox::IDD, pParent)
 {
 
 }
 
-ReimuGETURLBox::~ReimuGETURLBox()
+StormGETURLBox::~StormGETURLBox()
 {
 }
 
-void ReimuGETURLBox::DoDataExchange(CDataExchange* pDX)
+void StormGETURLBox::DoDataExchange(CDataExchange* pDX)
 {
 	CDialogEx::DoDataExchange(pDX);
 	DDX_Control(pDX, IDC_LIST, m_URLList);
 }
 
 
-BEGIN_MESSAGE_MAP(ReimuGETURLBox, CDialogEx)
-	ON_BN_CLICKED(IDC_ADD, &ReimuGETURLBox::OnBnClickedAdd)
+BEGIN_MESSAGE_MAP(StormGETURLBox, CDialogEx)
+	ON_BN_CLICKED(IDC_ADD, &StormGETURLBox::OnBnClickedAdd)
 END_MESSAGE_MAP()
 
 
-// ReimuGETURLBox message handlers
+// StormGETURLBox message handlers
 
 CString GetLine(CString &s)
 {
@@ -43,7 +43,7 @@ CString GetLine(CString &s)
 	return Line;
 }
 
-void ReimuGETURLBox::OnBnClickedAdd()
+void StormGETURLBox::OnBnClickedAdd()
 {	
 	CWnd* pwnd = AfxGetMainWnd(); // Pointer to main window
 	HWND hWnd = pwnd->GetSafeHwnd();

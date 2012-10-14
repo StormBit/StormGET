@@ -1,5 +1,5 @@
 
-// ReimuGETDlg.h : header file
+// StormGETDlg.h : header file
 //
 
 #pragma once
@@ -8,12 +8,12 @@
 
 #include "TrayDialog.h"
 
-// CReimuGETDlg dialog
-class CReimuGETDlg : public CTrayDialog
+// CStormGETDlg dialog
+class CStormGETDlg : public CTrayDialog
 {
 // Construction
 public:
-	CReimuGETDlg(CWnd* pParent = NULL);	// standard constructor
+	CStormGETDlg(CWnd* pParent = NULL);	// standard constructor
 
 // Dialog Data
 	enum { IDD = IDD_MAIN };

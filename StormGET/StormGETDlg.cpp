@@ -1,13 +1,13 @@
 
-// ReimuGETDlg.cpp : implementation file
+// StormGETDlg.cpp : implementation file
 //
 
 #include <process.h>
 #include "stdafx.h"
-#include "ReimuGET.h"
-#include "ReimuGETDlg.h"
-#include "ReimuGETURLBox.h"
-#include "ReimuGETPluginConfig.h"
+#include "StormGET.h"
+#include "StormGETDlg.h"
+#include "StormGETURLBox.h"
+#include "StormGETPluginConfig.h"
 #include "Resource.h"
 
 #include "afxdialogex.h"
@@ -31,8 +31,8 @@ HANDLE g_hInputFile = NULL;
 // Prototypes
 UINT DownloadFiles(LPVOID pParam);
 UINT ParseOutput(LPVOID pParam);
-UINT ExitReimuGET(LPVOID pParam);
-UINT InitReimuGET(LPVOID pParam);
+UINT ExitStormGET(LPVOID pParam);
+UINT InitStormGET(LPVOID pParam);
 int wildcmp(const char *wild, const char *string);
 
 bool isDling = false, queueRunning = false, assumeError = true, killAria = false, ExitOK = false;
@@ -77,18 +77,18 @@ BEGIN_MESSAGE_MAP(CAboutDlg, CDialogEx)
 END_MESSAGE_MAP()
 
 
-// CReimuGETDlg dialog
+// CStormGETDlg dialog
 
 
 
 
-CReimuGETDlg::CReimuGETDlg(CWnd* pParent /*=NULL*/)
-	: CTrayDialog(CReimuGETDlg::IDD, pParent)
+CStormGETDlg::CStormGETDlg(CWnd* pParent /*=NULL*/)
+	: CTrayDialog(CStormGETDlg::IDD, pParent)
 {
 	m_hIcon = AfxGetApp()->LoadIcon(IDR_MAINFRAME);
 }
 
-void CReimuGETDlg::DoDataExchange(CDataExchange* pDX)
+void CStormGETDlg::DoDataExchange(CDataExchange* pDX)
 {
 	CTrayDialog::DoDataExchange(pDX);
 	DDX_Control(pDX, IDC_LIST3, m_FileQueue);
@@ -97,29 +97,29 @@ void CReimuGETDlg::DoDataExchange(CDataExchange* pDX)
 	DDX_Control(pDX, IDC_PROGRESS1, m_progBar);
 }
 
-BEGIN_MESSAGE_MAP(CReimuGETDlg, CTrayDialog)
+BEGIN_MESSAGE_MAP(CStormGETDlg, CTrayDialog)
 
 	ON_WM_SYSCOMMAND()
 	ON_WM_PAINT()
 	ON_WM_QUERYDRAGICON()
-	ON_BN_CLICKED(IDC_BUTTON2, &CReimuGETDlg::OnBnClickedButton2)
-	ON_NOTIFY(NM_CUSTOMDRAW, IDC_SLIDER1, &CReimuGETDlg::OnNMCustomdrawSlider1)
-	ON_BN_CLICKED(IDC_BUTTON3, &CReimuGETDlg::OnBnClickedButton3)
-	ON_NOTIFY(LVN_INSERTITEM, IDC_LIST3, &CReimuGETDlg::OnLvnInsertitemList3)
+	ON_BN_CLICKED(IDC_BUTTON2, &CStormGETDlg::OnBnClickedButton2)
+	ON_NOTIFY(NM_CUSTOMDRAW, IDC_SLIDER1, &CStormGETDlg::OnNMCustomdrawSlider1)
+	ON_BN_CLICKED(IDC_BUTTON3, &CStormGETDlg::OnBnClickedButton3)
+	ON_NOTIFY(LVN_INSERTITEM, IDC_LIST3, &CStormGETDlg::OnLvnInsertitemList3)
 //	ON_WM_CLOSE()
 ON_WM_CLOSE()
-ON_COMMAND(ID_EXIT, &CReimuGETDlg::OnMenuExit)
-ON_COMMAND(ID_HELP_ABOUTREIMUGET, &CReimuGETDlg::OnHelpAbout)
-ON_COMMAND(ID_SESSION_ADDFROMCLIPBOARD, &CReimuGETDlg::OnAddFromClipboard)
-ON_COMMAND(ID_STOPDOWNLOAD, &CReimuGETDlg::OnStopDownload)
-ON_COMMAND(ID_RESET, &CReimuGETDlg::OnReset)
-ON_COMMAND(ID_PLUGINCONFIG, &CReimuGETDlg::OnPluginConfig)
+ON_COMMAND(ID_EXIT, &CStormGETDlg::OnMenuExit)
+ON_COMMAND(ID_HELP_ABOUTStormGET, &CStormGETDlg::OnHelpAbout)
+ON_COMMAND(ID_SESSION_ADDFROMCLIPBOARD, &CStormGETDlg::OnAddFromClipboard)
+ON_COMMAND(ID_STOPDOWNLOAD, &CStormGETDlg::OnStopDownload)
+ON_COMMAND(ID_RESET, &CStormGETDlg::OnReset)
+ON_COMMAND(ID_PLUGINCONFIG, &CStormGETDlg::OnPluginConfig)
 END_MESSAGE_MAP()
 
 
-// CReimuGETDlg message handlers
+// CStormGETDlg message handlers
 
-BOOL CReimuGETDlg::OnInitDialog()
+BOOL CStormGETDlg::OnInitDialog()
 {
 	CTrayDialog::OnInitDialog();
 
@@ -156,7 +156,7 @@ BOOL CReimuGETDlg::OnInitDialog()
     lpResLock = (char *) LockResource(hResourceLoaded);
     dwSizeRes = SizeofResource(NULL, hRes);
 	FILE * outputRes;
-	if(outputRes = _wfopen(L"ReimuGET_temp_aria2c.exe", L"wb")) {
+	if(outputRes = _wfopen(L"StormGET_temp_aria2c.exe", L"wb")) {
 		fwrite ((const char *) lpResLock,1,dwSizeRes,outputRes);
 		fclose(outputRes);
 	}
@@ -196,7 +196,7 @@ BOOL CReimuGETDlg::OnInitDialog()
 	m_FileQueue.InsertColumn(2, &lvColumn);
 
 	TraySetIcon(IDR_MAINFRAME);
-	TraySetToolTip(L"ReimuGET");
+	TraySetToolTip(L"StormGET");
 
 	CWnd* bGetFile = GetDlgItem(IDC_BUTTON3);
 	bGetFile->EnableWindow(FALSE);
@@ -204,35 +204,35 @@ BOOL CReimuGETDlg::OnInitDialog()
 	bGetFile->EnableWindow(FALSE);
 
 	CWnd* pwnd = AfxGetMainWnd(); // Pointer to main window
-	CWinThread* pInitReimuGET = AfxBeginThread(InitReimuGET,THREAD_PRIORITY_NORMAL);
+	CWinThread* pInitStormGET = AfxBeginThread(InitStormGET,THREAD_PRIORITY_NORMAL);
 
 	typedef bool (*PluginInit)();
 	CFileFind InitPlugins;
 	BOOL bWorking = InitPlugins.FindFile(L"Plugins\\host_*.dll");
 	while (bWorking) {
 		bWorking = InitPlugins.FindNextFile();
-		HMODULE ReimuGETPluginDLL = LoadLibrary(CString(L"Plugins\\" + InitPlugins.GetFileName()));
-		PluginInit ReimuGETPluginInit = (PluginInit)GetProcAddress(ReimuGETPluginDLL,"ReimuGETPluginInit");
-		ReimuGETPluginInit();
-		FreeLibrary(ReimuGETPluginDLL);
+		HMODULE StormGETPluginDLL = LoadLibrary(CString(L"Plugins\\" + InitPlugins.GetFileName()));
+		PluginInit StormGETPluginInit = (PluginInit)GetProcAddress(StormGETPluginDLL,"StormGETPluginInit");
+		StormGETPluginInit();
+		FreeLibrary(StormGETPluginDLL);
 	}
 
 	return TRUE;  // return TRUE  unless you set the focus to a control
 }
 
-UINT InitReimuGET(LPVOID pParam) {
+UINT InitStormGET(LPVOID pParam) {
 	CWnd* pwnd = AfxGetMainWnd(); // Pointer to main window
 	HWND hWnd = pwnd->GetSafeHwnd();
 
 	CListCtrl* m_FileQueue = (CListCtrl*)pwnd->GetDlgItem(IDC_LIST3);
 	CProgressCtrl* m_progBar = (CProgressCtrl*)pwnd->GetDlgItem(IDC_PROGRESS1);
 
-	if( PathFileExists(L"ReimuGET.csv")) {
-		int restore = AfxMessageBox(L"Would you like to restore your previous ReimuGET session?", MB_YESNO|MB_ICONQUESTION);
+	if( PathFileExists(L"StormGET.csv")) {
+		int restore = AfxMessageBox(L"Would you like to restore your previous StormGET session?", MB_YESNO|MB_ICONQUESTION);
 		if (restore == IDYES) {
 			pwnd->SetDlgItemTextW(IDC_STATUS, CString(L"Restoring session..."));
 
-			FILE * Session = _wfopen(L"ReimuGET.csv",L"r");
+			FILE * Session = _wfopen(L"StormGET.csv",L"r");
 
 			int c=0;while(!fscanf(Session,"%*[^\n]%*c"))c++;fseek(Session,0,SEEK_SET);
 
@@ -279,7 +279,7 @@ UINT InitReimuGET(LPVOID pParam) {
 	return 0;
 }
 
-void CReimuGETDlg::OnSysCommand(UINT nID, LPARAM lParam)
+void CStormGETDlg::OnSysCommand(UINT nID, LPARAM lParam)
 {
 	if ((nID & 0xFFF0) == IDM_ABOUTBOX)
 	{
@@ -296,7 +296,7 @@ void CReimuGETDlg::OnSysCommand(UINT nID, LPARAM lParam)
 //  to draw the icon.  For MFC applications using the document/view model,
 //  this is automatically done for you by the framework.
 
-void CReimuGETDlg::OnPaint()
+void CStormGETDlg::OnPaint()
 {
 
 	if (IsIconic())
@@ -324,14 +324,14 @@ void CReimuGETDlg::OnPaint()
 
 // The system calls this function to obtain the cursor to display while the user drags
 //  the minimized window.
-HCURSOR CReimuGETDlg::OnQueryDragIcon()
+HCURSOR CStormGETDlg::OnQueryDragIcon()
 {
 	return static_cast<HCURSOR>(m_hIcon);
 }
 
 
 
-void CReimuGETDlg::OnBnClickedButton2()
+void CStormGETDlg::OnBnClickedButton2()
 {
 	// Add URL:
 
@@ -364,7 +364,7 @@ void CReimuGETDlg::OnBnClickedButton2()
 }
 
 
-void CReimuGETDlg::OnNMCustomdrawSlider1(NMHDR *pNMHDR, LRESULT *pResult)
+void CStormGETDlg::OnNMCustomdrawSlider1(NMHDR *pNMHDR, LRESULT *pResult)
 {
 	LPNMCUSTOMDRAW pNMCD = reinterpret_cast<LPNMCUSTOMDRAW>(pNMHDR);
 
@@ -438,50 +438,50 @@ UINT DownloadFiles(LPVOID pParam) {
 
 			while (bWorking) {
 				bWorking = EnumeratePluginConditions.FindNextFile();
-				HMODULE ReimuGETPluginDLL = LoadLibrary(CString(L"Plugins\\" + EnumeratePluginConditions.GetFileName()));
-				PluginEnumerateConditions ReimuGETPluginEnumerateConditions = (PluginEnumerateConditions)GetProcAddress(ReimuGETPluginDLL,"ReimuGETPluginEnumerateConditions");
-				conditions = ReimuGETPluginEnumerateConditions();
+				HMODULE StormGETPluginDLL = LoadLibrary(CString(L"Plugins\\" + EnumeratePluginConditions.GetFileName()));
+				PluginEnumerateConditions StormGETPluginEnumerateConditions = (PluginEnumerateConditions)GetProcAddress(StormGETPluginDLL,"StormGETPluginEnumerateConditions");
+				conditions = StormGETPluginEnumerateConditions();
 				if (wildcmp(conditions, (const char *)FileURL)) {
 					PluginFound = true;
 					PluginDLL = EnumeratePluginConditions.GetFileName();
 				}
-				FreeLibrary(ReimuGETPluginDLL);
+				FreeLibrary(StormGETPluginDLL);
 			}
 			if (PluginFound) {
 				typedef void (*PluginDownload)(CString, CString);
 				typedef char * (*PluginStatus)();
 				typedef int (*PluginProgress)();
 				typedef bool (*PluginStillRunning)();
-				HMODULE ReimuGETPluginDLL = LoadLibrary(CString(L"Plugins\\" + PluginDLL));
-				PluginDownload ReimuGETPluginDownload = (PluginDownload)GetProcAddress(ReimuGETPluginDLL,"ReimuGETPluginDownload");
-				PluginStatus ReimuGETPluginGetStatus = (PluginStatus)GetProcAddress(ReimuGETPluginDLL,"ReimuGETPluginGetStatus");
-				PluginProgress ReimuGETPluginGetProgress = (PluginProgress)GetProcAddress(ReimuGETPluginDLL,"ReimuGETPluginGetProgress");
-				PluginStillRunning ReimuGETPluginStillRunning = (PluginStillRunning)GetProcAddress(ReimuGETPluginDLL,"ReimuGETPluginStillRunning");
+				HMODULE StormGETPluginDLL = LoadLibrary(CString(L"Plugins\\" + PluginDLL));
+				PluginDownload StormGETPluginDownload = (PluginDownload)GetProcAddress(StormGETPluginDLL,"StormGETPluginDownload");
+				PluginStatus StormGETPluginGetStatus = (PluginStatus)GetProcAddress(StormGETPluginDLL,"StormGETPluginGetStatus");
+				PluginProgress StormGETPluginGetProgress = (PluginProgress)GetProcAddress(StormGETPluginDLL,"StormGETPluginGetProgress");
+				PluginStillRunning StormGETPluginStillRunning = (PluginStillRunning)GetProcAddress(StormGETPluginDLL,"StormGETPluginStillRunning");
 				m_FileQueue->SetItemText(i, 0, L"Downloading");
 				pwnd->SetDlgItemTextW(IDC_ETA, L"Downloading with plugin " + PluginDLL);
 				pwnd->SetDlgItemTextW(IDC_STATUS, L"Initializing...");
 
-				ReimuGETPluginDownload(m_FileQueue->GetItemText(i, 2),DownloadDir);
+				StormGETPluginDownload(m_FileQueue->GetItemText(i, 2),DownloadDir);
 
 				bool exitCode = true;
 
 				while(1) { // Main loop to update the interface. Should update at minimum every 500ms. 
-					if (!ReimuGETPluginStillRunning()) {
+					if (!StormGETPluginStillRunning()) {
 						break;
 					}
 
 					char * cBuffer;
-					cBuffer = ReimuGETPluginGetStatus();
+					cBuffer = StormGETPluginGetStatus();
 
 					pwnd->SetDlgItemTextW(IDC_STATUS, CString(cBuffer));
 
-					m_Prog->SetPos(ReimuGETPluginGetProgress());
+					m_Prog->SetPos(StormGETPluginGetProgress());
 				}
 
 				m_FileQueue->SetItemText(i, 0, L"Cleaning up...");
 				m_Prog->SetPos(0);
 				Sleep(1000);
-				FreeLibrary(ReimuGETPluginDLL);
+				FreeLibrary(StormGETPluginDLL);
 
 				if (exitCode) {
 					m_FileQueue->SetItemText(i, 0, L"Done");
@@ -509,7 +509,7 @@ UINT DownloadFiles(LPVOID pParam) {
 					DownloadDir = L".";
 				}
 
-				int Value = CreateProcess(NULL, CString(L"ReimuGET_temp_aria2c.exe --file-allocation=none --check-certificate=false --dir \"" + DownloadDir + L"\" --max-connection-per-server " + m_FileQueue->GetItemText(i, 1) + L" --min-split-size 1M --split " + m_FileQueue->GetItemText(i, 1) + L" " + m_FileQueue->GetItemText(i, 2)).GetBuffer(), NULL, NULL, true, 0, NULL, NULL, &si, &pi);
+				int Value = CreateProcess(NULL, CString(L"StormGET_temp_aria2c.exe --file-allocation=none --check-certificate=false --dir \"" + DownloadDir + L"\" --max-connection-per-server " + m_FileQueue->GetItemText(i, 1) + L" --min-split-size 1M --split " + m_FileQueue->GetItemText(i, 1) + L" " + m_FileQueue->GetItemText(i, 2)).GetBuffer(), NULL, NULL, true, 0, NULL, NULL, &si, &pi);
 				
 				Aria2PID = pi.dwProcessId;
 
@@ -548,14 +548,14 @@ UINT DownloadFiles(LPVOID pParam) {
 	return 1;
 }
 
-void CReimuGETDlg::OnBnClickedButton3()
+void CStormGETDlg::OnBnClickedButton3()
 {
 	CWnd* pwnd = AfxGetMainWnd(); // Pointer to main window
 	CWinThread* pDownloadFiles = AfxBeginThread(DownloadFiles,pwnd,THREAD_PRIORITY_NORMAL);
 }
 
 
-void CReimuGETDlg::OnLvnInsertitemList3(NMHDR *pNMHDR, LRESULT *pResult)
+void CStormGETDlg::OnLvnInsertitemList3(NMHDR *pNMHDR, LRESULT *pResult)
 {
 	LPNMLISTVIEW pNMLV = reinterpret_cast<LPNMLISTVIEW>(pNMHDR);
 	// TODO: Add your control notification handler code here
@@ -565,11 +565,11 @@ void CReimuGETDlg::OnLvnInsertitemList3(NMHDR *pNMHDR, LRESULT *pResult)
 }
 
 
-BOOL CReimuGETDlg::PreTranslateMessage(MSG* pMsg)
+BOOL CStormGETDlg::PreTranslateMessage(MSG* pMsg)
 {
 	if ((pMsg->message == WM_KEYDOWN)) {
 		if (pMsg->wParam == VK_RETURN) {
-			CReimuGETDlg::OnBnClickedButton2();
+			CStormGETDlg::OnBnClickedButton2();
 			return TRUE;
 		}
 	}
@@ -645,16 +645,31 @@ UINT ParseOutput(LPVOID pParam) {
 				if (eta != NULL) {
 					ETA = CString(eta);
 					ETAFormatted = L"about ";
-					if (ETA.GetLength() > 6) {
-						int n = ETA.Find('h'); 
-						CString token(ETA, n);
-						ETAFormatted += CString(token + L" hours, ");
-					}
-					if (ETA.GetLength() > 3) {
-						ETAFormatted += CString(CString(ETA.Right(6).GetBufferSetLength(2)).TrimLeft(L"0") + CString(L" minutes, "));
+					CString ETAToken;
+					CString Token1 = L"", Token2 = L"", Token3 = L"";
+					int curPos = 0, numTokens = 0;
+
+					ETAToken = ETA.Tokenize(_T("hms"),curPos);
+					while (ETAToken != _T("")) {
+						numTokens++;
+						if (numTokens == 1) {
+							Token1 = ETAToken;
+						} else if (numTokens == 2) {
+							Token2 = ETAToken;
+						} else if (numTokens == 3) {
+							Token3 = ETAToken;
+						}
+
+						ETAToken = ETA.Tokenize(_T("hms"), curPos);
 					}
 
-					ETAFormatted += CString(CString(ETA.Right(3).GetBufferSetLength(2)).TrimLeft(L"0") + CString(L" seconds remaining"));
+					if (Token3.GetLength() > 0) {
+						ETAFormatted += CString(Token1 + L" hours, " + Token2 + L" minutes, " + Token3 + L" seconds remaining");
+					} else if (Token2.GetLength() > 0) {
+						ETAFormatted += CString(Token1 + L" minutes, " + Token2 + L" seconds remaining");
+					} else {
+						ETAFormatted += CString(Token1 + L" seconds remaining");
+					}
 				}
 
 				FileTotal.Format(L"%d", m_FileQueue->GetItemCount());
@@ -675,12 +690,12 @@ UINT ParseOutput(LPVOID pParam) {
 	return 1;
 }
 
-void CReimuGETDlg::OnClose()
+void CStormGETDlg::OnClose()
 {
 	CTrayDialog::OnClose();
 }
 
-void CReimuGETDlg::OnCancel()
+void CStormGETDlg::OnCancel()
 {
 	bool doQuitNow = false;
 
@@ -694,11 +709,11 @@ void CReimuGETDlg::OnCancel()
 	}
 
 	if (doQuitNow == true) {
-		CWinThread* pExitReimuGET = AfxBeginThread(ExitReimuGET,THREAD_PRIORITY_NORMAL);
+		CWinThread* pExitStormGET = AfxBeginThread(ExitStormGET,THREAD_PRIORITY_NORMAL);
 	}
 }
 
-UINT ExitReimuGET(LPVOID pParam) {	
+UINT ExitStormGET(LPVOID pParam) {	
 	CWnd* pwnd = AfxGetMainWnd(); // Pointer to main window
 	HWND hWnd = pwnd->GetSafeHwnd();
 
@@ -707,7 +722,7 @@ UINT ExitReimuGET(LPVOID pParam) {
 	bGetFile = pwnd->GetDlgItem(IDC_BUTTON2);
 	bGetFile->EnableWindow(FALSE);
 
-	pwnd->SetDlgItemTextW(IDC_ETA, CString(L"Shutting down ReimuGET..."));
+	pwnd->SetDlgItemTextW(IDC_ETA, CString(L"Shutting down StormGET..."));
 	ExitOK = false;
 	killAria = true;
 
@@ -733,18 +748,18 @@ UINT ExitReimuGET(LPVOID pParam) {
 	BOOL bWorking = ExitPlugins.FindFile(L"Plugins\\host_*.dll");
 	while (bWorking) {
 		bWorking = ExitPlugins.FindNextFile();
-		HMODULE ReimuGETPluginDLL = LoadLibrary(CString(L"Plugins\\" + ExitPlugins.GetFileName()));
-		PluginExit ReimuGETPluginExit = (PluginExit)GetProcAddress(ReimuGETPluginDLL,"ReimuGETPluginExit");
-		ReimuGETPluginExit();
-		FreeLibrary(ReimuGETPluginDLL);
+		HMODULE StormGETPluginDLL = LoadLibrary(CString(L"Plugins\\" + ExitPlugins.GetFileName()));
+		PluginExit StormGETPluginExit = (PluginExit)GetProcAddress(StormGETPluginDLL,"StormGETPluginExit");
+		StormGETPluginExit();
+		FreeLibrary(StormGETPluginDLL);
 	}
 
-	DeleteFile(L"ReimuGET_temp_aria2c.exe");
+	DeleteFile(L"StormGET_temp_aria2c.exe");
 	DeleteFile(L"Plugins\\host_bandcamp.dll");
 	RemoveDirectory(L"Plugins");
 
 	CListCtrl* m_FileQueue = (CListCtrl*)pwnd->GetDlgItem(IDC_LIST3);
-	DeleteFile(L"ReimuGET.csv");
+	DeleteFile(L"StormGET.csv");
 	if (m_FileQueue->GetItemCount()) {
 		pwnd->SetDlgItemTextW(IDC_STATUS, CString(L"Saving session..."));
 		CProgressCtrl* m_Prog = (CProgressCtrl*)pwnd->GetDlgItem(IDC_PROGRESS1);
@@ -753,7 +768,7 @@ UINT ExitReimuGET(LPVOID pParam) {
 		CWnd* pwnd = AfxGetMainWnd(); // Pointer to main window
 		CListCtrl* m_FileQueue = (CListCtrl*)pwnd->GetDlgItem(IDC_LIST3);
 		
-		FILE* fSession = _wfopen(L"ReimuGET.csv",L"w");
+		FILE* fSession = _wfopen(L"StormGET.csv",L"w");
 		
 		for (int i = 0; i < m_FileQueue->GetItemCount(); i++){
 			fputws(CString(m_FileQueue->GetItemText(i, 0) + L"," + m_FileQueue->GetItemText(i, 1) + L"," + m_FileQueue->GetItemText(i, 2) + L"\n"),fSession);
@@ -767,30 +782,30 @@ UINT ExitReimuGET(LPVOID pParam) {
 	exit(0);
 }
 
-void CReimuGETDlg::OnMenuExit()
+void CStormGETDlg::OnMenuExit()
 {
-	CWinThread* pExitReimuGET = AfxBeginThread(ExitReimuGET,THREAD_PRIORITY_NORMAL);
+	CWinThread* pExitStormGET = AfxBeginThread(ExitStormGET,THREAD_PRIORITY_NORMAL);
 }
 
 
 
 
-void CReimuGETDlg::OnHelpAbout()
+void CStormGETDlg::OnHelpAbout()
 {
 	CAboutDlg dlgAbout;
 	dlgAbout.DoModal();
 }
 
 
-void CReimuGETDlg::OnAddFromClipboard()
+void CStormGETDlg::OnAddFromClipboard()
 {
-	ReimuGETURLBox* AddFromClipboard;
-	AddFromClipboard = new ReimuGETURLBox();
+	StormGETURLBox* AddFromClipboard;
+	AddFromClipboard = new StormGETURLBox();
 
 	AddFromClipboard->DoModal();
 }
 
-void CReimuGETDlg::OnStopDownload()
+void CStormGETDlg::OnStopDownload()
 {
 	STARTUPINFO si;
 	PROCESS_INFORMATION pi;
@@ -814,10 +829,10 @@ void CReimuGETDlg::OnStopDownload()
 	BOOL bWorking = ExitPlugins.FindFile(L"Plugins\\host_*.dll");
 	while (bWorking) {
 		bWorking = ExitPlugins.FindNextFile();
-		HMODULE ReimuGETPluginDLL = LoadLibrary(CString(L"Plugins\\" + ExitPlugins.GetFileName()));
-		PluginExit ReimuGETPluginExit = (PluginExit)GetProcAddress(ReimuGETPluginDLL,"ReimuGETPluginExit");
-		ReimuGETPluginExit();
-		FreeLibrary(ReimuGETPluginDLL);
+		HMODULE StormGETPluginDLL = LoadLibrary(CString(L"Plugins\\" + ExitPlugins.GetFileName()));
+		PluginExit StormGETPluginExit = (PluginExit)GetProcAddress(StormGETPluginDLL,"StormGETPluginExit");
+		StormGETPluginExit();
+		FreeLibrary(StormGETPluginDLL);
 	}
 
 	SetDlgItemTextW(IDC_STATUS, L"");
@@ -825,9 +840,9 @@ void CReimuGETDlg::OnStopDownload()
 }
 
 
-void CReimuGETDlg::OnReset()
+void CStormGETDlg::OnReset()
 {
-	CReimuGETDlg::OnStopDownload();
+	CStormGETDlg::OnStopDownload();
 
 	CListCtrl* m_FileQueue = (CListCtrl*)GetDlgItem(IDC_LIST3);
 
@@ -835,10 +850,10 @@ void CReimuGETDlg::OnReset()
 }
 
 
-void CReimuGETDlg::OnPluginConfig()
+void CStormGETDlg::OnPluginConfig()
 {
-	CReimuGETPluginConfig* ConfigurePlugins;
-	ConfigurePlugins = new CReimuGETPluginConfig();
+	CStormGETPluginConfig* ConfigurePlugins;
+	ConfigurePlugins = new CStormGETPluginConfig();
 
 	ConfigurePlugins->DoModal();
 }
