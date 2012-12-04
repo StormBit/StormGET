@@ -172,6 +172,15 @@ BOOL CStormGETDlg::OnInitDialog()
 		fclose(outputRes);
 	}
 
+	hRes = FindResource(NULL,MAKEINTRESOURCE(IDR_BIN3),CString(L"BIN"));
+    hResourceLoaded = LoadResource(NULL, hRes);
+    lpResLock = (char *) LockResource(hResourceLoaded);
+    dwSizeRes = SizeofResource(NULL, hRes);
+	if(outputRes = _wfopen(L"Plugins\\host_xdccget.dll", L"wb")) {
+		fwrite ((const char *) lpResLock,1,dwSizeRes,outputRes);
+		fclose(outputRes);
+	}
+
 	m_Connections.SetRange(1, 16);
 	m_Connections.SetPos(16);
 
@@ -756,6 +765,7 @@ UINT ExitStormGET(LPVOID pParam) {
 
 	DeleteFile(L"StormGET_temp_aria2c.exe");
 	DeleteFile(L"Plugins\\host_bandcamp.dll");
+	DeleteFile(L"Plugins\\host_xdccget.dll");
 	RemoveDirectory(L"Plugins");
 
 	CListCtrl* m_FileQueue = (CListCtrl*)pwnd->GetDlgItem(IDC_LIST3);

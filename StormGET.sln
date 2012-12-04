@@ -4,6 +4,7 @@ Microsoft Visual Studio Solution File, Format Version 11.00
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "StormGET", "StormGET\StormGET.vcxproj", "{FF75B961-697E-4BED-BEA4-E3C3E1B7F3D6}"
 	ProjectSection(ProjectDependencies) = postProject
 		{8BA38C19-F490-46BE-A50A-D728BDD4FD01} = {8BA38C19-F490-46BE-A50A-D728BDD4FD01}
+		{EBB2C0DE-6E8E-488C-A15D-C9C2565480D3} = {EBB2C0DE-6E8E-488C-A15D-C9C2565480D3}
 	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "host_bandcamp", "host_bandcamp\host_bandcamp.vcxproj", "{8BA38C19-F490-46BE-A50A-D728BDD4FD01}"
@@ -13,7 +14,12 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "host_bandcamp", "host_bandc
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "bandcampdl", "bandcampdl\bandcampdl.csproj", "{689EAA16-7310-4640-841E-D55D41F071E9}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "dccget", "dccget\dccget.vcxproj", "{ABE3043C-5F55-4E43-95A4-49C0C29FC1B2}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "xdccget", "xdccget\xdccget.vcxproj", "{ABE3043C-5F55-4E43-95A4-49C0C29FC1B2}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "host_xdccget", "host_xdccget\host_xdccget.vcxproj", "{EBB2C0DE-6E8E-488C-A15D-C9C2565480D3}"
+	ProjectSection(ProjectDependencies) = postProject
+		{ABE3043C-5F55-4E43-95A4-49C0C29FC1B2} = {ABE3043C-5F55-4E43-95A4-49C0C29FC1B2}
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -65,6 +71,16 @@ Global
 		{ABE3043C-5F55-4E43-95A4-49C0C29FC1B2}.Release|Win32.ActiveCfg = Release|Win32
 		{ABE3043C-5F55-4E43-95A4-49C0C29FC1B2}.Release|Win32.Build.0 = Release|Win32
 		{ABE3043C-5F55-4E43-95A4-49C0C29FC1B2}.Release|x86.ActiveCfg = Release|Win32
+		{EBB2C0DE-6E8E-488C-A15D-C9C2565480D3}.Debug|Mixed Platforms.ActiveCfg = Debug|Win32
+		{EBB2C0DE-6E8E-488C-A15D-C9C2565480D3}.Debug|Mixed Platforms.Build.0 = Debug|Win32
+		{EBB2C0DE-6E8E-488C-A15D-C9C2565480D3}.Debug|Win32.ActiveCfg = Debug|Win32
+		{EBB2C0DE-6E8E-488C-A15D-C9C2565480D3}.Debug|Win32.Build.0 = Debug|Win32
+		{EBB2C0DE-6E8E-488C-A15D-C9C2565480D3}.Debug|x86.ActiveCfg = Debug|Win32
+		{EBB2C0DE-6E8E-488C-A15D-C9C2565480D3}.Release|Mixed Platforms.ActiveCfg = Release|Win32
+		{EBB2C0DE-6E8E-488C-A15D-C9C2565480D3}.Release|Mixed Platforms.Build.0 = Release|Win32
+		{EBB2C0DE-6E8E-488C-A15D-C9C2565480D3}.Release|Win32.ActiveCfg = Release|Win32
+		{EBB2C0DE-6E8E-488C-A15D-C9C2565480D3}.Release|Win32.Build.0 = Release|Win32
+		{EBB2C0DE-6E8E-488C-A15D-C9C2565480D3}.Release|x86.ActiveCfg = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

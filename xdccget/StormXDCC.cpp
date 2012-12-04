@@ -1,6 +1,6 @@
-#include "StormDCC.h"
+#include "StormXDCC.h"
 
-#define CHUNKSIZE 1024
+#define CHUNKSIZE 16384
 
 void DCCGet(void *derp) {
 	SOCKET dccSocket;
@@ -11,7 +11,7 @@ void DCCGet(void *derp) {
 	int bRecv;
 	FILE * pFile;
 
-	long int totalRecieved = 0;
+	long long int totalRecieved = 0;
 
     WSAStartup(MAKEWORD(1, 1), &wsaData);
 
@@ -22,14 +22,14 @@ void DCCGet(void *derp) {
 		dccServerInfo.sin_addr.s_addr = ntohl(DCCIP);
 		dccServerInfo.sin_port = htons(DCCPort);
 
-		cout << " - Connecting to " << inet_ntoa(dccServerInfo.sin_addr) << " on port " << DCCPort << "...\n";
+		cout << "Connecting to " << inet_ntoa(dccServerInfo.sin_addr) << " on port " << DCCPort << "...\n";
 
 		if (connect(dccSocket, (LPSOCKADDR)&dccServerInfo, sizeof(struct sockaddr)) == SOCKET_ERROR) {
 			cout << "Error " << GetLastError();
 		}
 
-		cout << " - Recieving file " << DCCFilename << "...\n";
-
+		cout << "Recieving file " << DCCFilename << "...\n";
+		
 		if (DCCFilename[0] == '"') {
 			arrayShift(DCCFilename);
 			DCCFilename[sizeof(DCCFilename)] = '\0';
@@ -37,39 +37,76 @@ void DCCGet(void *derp) {
 
 		if (DCCResume == true) {
 			totalRecieved = fsize(DCCFilename);
-			pFile = fopen (DCCFilename,"a");
+			pFile = fopen (DCCFilename,"ab");
 		} else {
-			pFile = fopen (DCCFilename,"w");
+			pFile = fopen (DCCFilename,"wb");
 		}
 
 		if (pFile!=NULL) {
 			while(1) {
 				memset(cFileCache, 0, CHUNKSIZE);
 
-				bRecv = recv(dccSocket, cFileCache, CHUNKSIZE, 0);
+				bRecv = recv(dccSocket, cFileCache, sizeof(cFileCache), 0);
 				if( (bRecv == 0) || (bRecv == SOCKET_ERROR) ) break;
 				fwrite (cFileCache, 1, bRecv, pFile);
 
 				totalRecieved += bRecv;
-				char buffer[65];
 
-				_itoa(totalRecieved, buffer, 10);
-				send(dccSocket, buffer, strlen(buffer), 0);
-				cout << "\r" << (totalRecieved / 1024) << " kB / " << (DCCSize / 1024) << " kB";
+				if (DCCSize == totalRecieved) {
+					char buffer[65];
+					_itoa(DCCSize, buffer, 10);
+					send(dccSocket, buffer, strlen(buffer), 0);
+				}
+				cout << (totalRecieved / 1024) << " kB / " << (DCCSize / 1024) << " kB\n";
 			}
 			
 			fclose(pFile);
 		} else {
-			cout << "\nError opening file";
+			cout << "Error opening file\n";
 			closesocket(dccSocket);
 		}
 	}
 
-	cout << "\r - Transfer complete! Exiting...\n";
+	cout << (totalRecieved / 1024) << " kB / " << (DCCSize / 1024) << " kB - Transfer complete! Exiting...\n";
 	exit(0);
 }
 
 int main(int argc, char *argv[]) {
+	if (argc < 1) {
+		printf("No URI provided.");
+		exit(1);
+	}
+
+	char *URL = strdup(argv[1]);
+
+	for (int i=0;i<7;i++) arrayShift(URL);
+
+	char * pch;
+	pch = strtok (URL,":");
+	if (pch != NULL) ircServer = strdup(pch);
+	pch = strtok (NULL,"/");
+	if (pch != NULL) {
+		if (pch[0] == '+') {
+			useSSL = true;
+			char *portStr = strdup(pch);
+			arrayShift(portStr);
+			ircPort = atoi(portStr);
+		} else {
+			useSSL = false;
+			ircPort = atoi(pch);
+		}
+	}	
+	pch = strtok (NULL,"/");
+	if (pch != NULL) ircNick = strdup(pch);
+	pch = strtok (NULL,"/");
+	if (pch != NULL) ircChan = strdup(pch);
+	pch = strtok (NULL,"/");
+	if (pch != NULL) dccNick = strdup(pch);
+	pch = strtok (NULL,"/");
+	if (pch != NULL) dccNum = strdup(pch);
+
+	ircTimeout	= 10;
+
     char cBuffer[128000];
     char cOutBuffer[512];
     char *lineSPLIT[512];
@@ -77,18 +114,18 @@ int main(int argc, char *argv[]) {
     int bRecv;
     PIRCMSG sMessage;
 
-	cout << "StormGET DCC Client 1.0a1\n\n - Connecting to server " << ircServer << ":" << ircPort << "...\n";
+	cout << "StormGET XDCC Client 1.0a1\n\nConnecting to server " << ircServer << ":" << ircPort << "...\n";
 
     int tries;
     for(tries=1; socketConnect(&strSocket, ircServer, ircPort)!=0; tries++) {
-        printf("Failed attempt: %d\r\n",tries);
+        printf("Failed attempt: %d\n\n",tries);
         Sleep(ircTimeout*1000);
     }
 
-	printf(" - Logging in...\n");
-	sockPrint(&strSocket, "NICK %s\r\n", ircNick);
-    sockPrint(&strSocket, "USER %s * * :%s\r\n", ircNick, ircNick);
-    printf(" - Waiting for server...\n");
+	printf("Logging in...\n");
+	sockPrint(&strSocket, "NICK %s\n\n", ircNick);
+    sockPrint(&strSocket, "USER %s * * :%s\n\n", ircNick, ircNick);
+    printf("Waiting for server...\n");
 
     while(1) {
         memset(cBuffer, 0, 128000);
@@ -99,7 +136,7 @@ int main(int argc, char *argv[]) {
         if( (bRecv == 0) || (bRecv == SOCKET_ERROR) ) break;
 
 		char * pch;
-		pch = strtok (cBuffer,"\r\n");
+		pch = strtok (cBuffer,"\n\n");
 		while (pch != NULL) {
 			//cout << pch << "\n";
 
@@ -115,7 +152,7 @@ int main(int argc, char *argv[]) {
 				parseMessage(&strSocket, pch);
 			}  
 
-			pch = strtok (NULL, "\r\n");
+			pch = strtok (NULL, "\n\n");
 		}
 
     }
@@ -137,6 +174,7 @@ int socketConnect(SOCKET *connection, char *HName, int port) {
     WSADATA wsaData;
     LPHOSTENT hostEntry;
     if (WSAStartup(MAKEWORD(1, 1), &wsaData) == -1) return (-1);
+	if (useSSL) printf("Initializing OpenSSL...\n");
 	if (useSSL) SSL_load_error_strings();
 	if (useSSL) SSL_library_init();
     if (!(hostEntry = gethostbyname(HName))) {
@@ -158,7 +196,7 @@ int socketConnect(SOCKET *connection, char *HName, int port) {
 	if (useSSL) {
 		SSL_CTX* ctx = SSL_CTX_new(SSLv23_client_method());
 		if(!ctx) {
-			printf("CTX");
+			printf("OpenSSL: Error initializing SSL_CTX object\n");
 			return (-1);
 		}
 
@@ -166,15 +204,15 @@ int socketConnect(SOCKET *connection, char *HName, int port) {
 		SSL_CTX_free(ctx);
 
 		if(!ssl) {
-			printf("SSL");
+			printf("OpenSSL: Error initializing SSL object\n");
 			return (-1);
 		}
 
 		SSL_set_fd(ssl, (int)*connection);
 		SSL_set_verify(ssl, SSL_VERIFY_NONE, NULL);
-
+		if (useSSL) printf("Performing SSL authentication...\n");
 		if(SSL_connect(ssl) != 1) {
-			printf("SSLCONNECT");
+			printf("OpenSSL: Error during SSL authentication\n");
 			return (-1);
 		}
 
@@ -193,10 +231,10 @@ int sockPrint(SOCKET *strSocket, char* cMessage, ...) {
 
 	if (useSSL) {
 		SSL_write(ssl, cBuffer, strlen(cBuffer));
-		SSL_write(ssl, "\r\n", strlen("\r\n"));
+		SSL_write(ssl, "\n\n", strlen("\n\n"));
 	} else {
 		send(*strSocket, cBuffer, strlen(cBuffer), 0);
-		send(*strSocket, "\r\n", strlen("\r\n"), 0);
+		send(*strSocket, "\n\n", strlen("\n\n"), 0);
 	}
     return 1;
 }
@@ -210,23 +248,23 @@ void parseMessage(SOCKET *strSocket, char *sMessage) {
 		char *szCmd;
 		char *szArg[15];
 	*/
-	//cout << ">> " << sMessage << "\r\n";
+	//cout << ">> " << sMessage << "\n\n";
 	PIRCMSG cMessage = SplitIrcMessage(sMessage);
 
 	if (!strcmp(cMessage->szCmd,"422") || !strcmp(cMessage->szCmd,"376")) {
 		if (!ircChannelJoined) {
-			printf(" - Joining %s...\n", ircChan);
-			sockPrint(strSocket, "JOIN %s\r\n", ircChan);
+			printf("Joining %s...\n", ircChan);
+			sockPrint(strSocket, "JOIN %s\n\n", ircChan);
 
-			printf(" - Requesting pack %s from %s...\n", dccNum, dccNick);
-			sockPrint(strSocket, "PRIVMSG %s :XDCC SEND %s\r\n", dccNick, dccNum);
+			printf("Requesting pack %s from %s...\n", dccNum, dccNick);
+			sockPrint(strSocket, "PRIVMSG %s :XDCC SEND %s\n\n", dccNick, dccNum);
 
 			ircChannelJoined = true;
 		}
 	}
 	if (cMessage->szArg[1] != NULL) {
 		if (!strcmp(cMessage->szArg[1],"\1VERSION\1")) {
-			sockPrint(strSocket, "NOTICE %s :irssi v0.8.15 - running on Windows x86_64\r\n", cMessage->szNick);
+			sockPrint(strSocket, "NOTICE %s :irssi v0.8.15 - running on Windows x86_64\n\n", cMessage->szNick);
 		}
 	} 	
 
@@ -276,20 +314,23 @@ void parseMessage(SOCKET *strSocket, char *sMessage) {
 				DCCSize = _atoi64(messageParams[5]);
 			} 
 			if (messageParams[2] != NULL && messageParams[3] != NULL && messageParams[4] != NULL) {
-				cout << " - Recieved offer for file " << messageParams[2] << "\n";
+				cout << "Recieved offer for file " << messageParams[2] << "\n";
 				
 				DCCFilename = strdup(messageParams[2]);
 				DCCNick = strdup(cMessage->szNick);
 				DCCIP = _atoi64(messageParams[3]);
 				DCCPort = _atoi64(messageParams[4]);
 			
-
-				if (fsize(DCCFilename) == 0) {
+				if (fsize(DCCFilename) == DCCSize) {
+					printf("File already fully downloaded, nothing to do.");
+					sockPrint(strSocket, "PRIVMSG %s :XDCC CANCEL\n\n", dccNick);
+					sockPrint(strSocket, "QUIT :\n\n", dccNick);
+				} else if (fsize(DCCFilename) == 0) {
 					_beginthread(DCCGet, 0, NULL);
 				} else {
-					printf(" - File exists, resuming...\n");
+					printf("File exists, resuming...\n");
 					ostringstream outStr;
-					outStr << "PRIVMSG " << cMessage->szNick << " :\1DCC RESUME " << DCCFilename << " " << DCCPort << " " <<  fsize(DCCFilename) << "\1\r\n";
+					outStr << "PRIVMSG " << cMessage->szNick << " :\1DCC RESUME " << DCCFilename << " " << DCCPort << " " <<  fsize(DCCFilename) << "\1\n\n";
 					sockPrint(strSocket,(char *)outStr.str().c_str());
 
 					// Any XDCC bot out there should support resumes, so at this point we wait for an ACCEPT and then connect.

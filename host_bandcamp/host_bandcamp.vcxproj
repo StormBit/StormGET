@@ -103,11 +103,7 @@
       <AdditionalIncludeDirectories>$(IntDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ResourceCompile>
     <PostBuildEvent>
-      <Command>del "$(TargetDir)"*.exp
-del "$(TargetDir)"*.lib
-del "$(TargetDir)"*.pdb
-
-move /Y "$(SolutionDir)$(ConfigurationName)\$(TargetFileName)" "$(SolutionDir)StormGET\res\host_bandcamp.dll"
+      <Command>move /Y "$(SolutionDir)$(ConfigurationName)\$(TargetFileName)" "$(SolutionDir)StormGET\res\host_bandcamp.dll"
 </Command>
     </PostBuildEvent>
     <PreBuildEvent>

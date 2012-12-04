@@ -20,8 +20,6 @@
 
 using namespace std;
 
-#include "Config.h"
-
 #pragma comment (lib, "ws2_32.lib") 
 #pragma comment (lib, "libeay32.lib")
 #pragma comment	(lib, "ssleay32.lib")
@@ -48,6 +46,15 @@ long long int DCCIP = 0, DCCPort = 0, DCCSize = 0;
 char* DCCFilename;
 
 char *DCCNick;
+
+int		ircTimeout;
+char	*ircNick;
+char	*ircServer;
+bool	useSSL;
+int		ircPort;
+char	*ircChan;
+char	*dccNick;
+char	*dccNum;
 
 PIRCMSG SplitIrcMessage(char *szMsg);
 bool arrayShift(char *cBuffer);
