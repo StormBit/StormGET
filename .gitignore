@@ -6,6 +6,6 @@ ipch
 *.sdf
 *.aps
 *.filters
-host_bandcamp.dll
+*.opensdf
+host_*.dll
 bandcampdl.exe
-dccget.exe

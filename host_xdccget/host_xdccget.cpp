@@ -1,6 +1,3 @@
-// host_bandcamp.cpp : Defines the initialization routines for the DLL.
-//
-
 #include "stdafx.h"
 
 #ifdef _DEBUG
@@ -65,7 +62,7 @@ char*	ircChan;
 char*	dccNick;
 char*	dccNum;
 
-char* getStatus = "Initializing...";
+char	getStatus[1024] = "Initializing...";
 
 PIRCMSG SplitIrcMessage(char *szMsg);
 bool arrayShift(char *cBuffer);
@@ -201,7 +198,7 @@ extern "C" _declspec(dllexport) char * StormGETPluginEnumerateConditions() {
 #define CHUNKSIZE 1024
 
 void MainThread(void *derp) {
-	char *portStr;
+	char portStr[128];
 
 	for (int i=0;i<7;i++) arrayShift(URL);
 
@@ -212,12 +209,12 @@ void MainThread(void *derp) {
 	if (pch != NULL) {
 		if (pch[0] == '+') {
 			useSSL = true;
-			portStr = strdup(pch);
+			strcpy(portStr,pch);
 			arrayShift(portStr);
 			ircPort = atoi(portStr);
 		} else {
 			useSSL = false;
-			portStr = strdup(pch);
+			strcpy(portStr,pch);
 			ircPort = atoi(pch);
 		}
 	}	
@@ -239,18 +236,24 @@ void MainThread(void *derp) {
     int bRecv;
     PIRCMSG sMessage;
 
-	//getStatus = CStringA("Connecting to server " + CStringA(ircServer) + ":" + portStr + "...").GetBuffer();
+	ZeroMemory(getStatus,1024);
+	strcpy(getStatus,CStringA("Connecting to server " + CStringA(ircServer) + ":" + portStr + "...").GetBuffer());
 
     int tries;
     for(tries=1; socketConnect(&strSocket, ircServer, ircPort)!=0; tries++) {
+		ZeroMemory(getStatus,1024);
         sprintf(getStatus,"Connection attempt %d failed...",tries);
         Sleep(ircTimeout*1000);
     }
 
-	getStatus = "Logging in...";
+	ZeroMemory(getStatus,1024);
+	strcpy(getStatus,"Logging in...");
+
 	sockPrint(&strSocket, "NICK %s\n\n", ircNick);
     sockPrint(&strSocket, "USER %s * * :%s\n\n", ircNick, ircNick);
-    getStatus = "Waiting for server...";
+
+	ZeroMemory(getStatus,1024);
+    strcpy(getStatus,"Waiting for server...");
 
     while(1) {
         memset(cBuffer, 0, 128000);
@@ -301,7 +304,8 @@ void DCCGet(void *derp) {
     WSAStartup(MAKEWORD(1, 1), &wsaData);
 
 	if ((dccSocket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP)) == INVALID_SOCKET) {
-		getStatus = CStringA(L"Error " + GetLastError()).GetBuffer();
+		ZeroMemory(getStatus,1024);
+		strcpy(getStatus,CStringA(L"Error " + GetLastError()).GetBuffer());
 	} else {
 		dccServerInfo.sin_family = AF_INET;
 		dccServerInfo.sin_addr.s_addr = ntohl(DCCIP);
@@ -310,13 +314,16 @@ void DCCGet(void *derp) {
 		char *strDCCPort = "";
 		itoa(DCCPort,strDCCPort,10);
 
-		//getStatus = CStringA("Connecting to " + CStringA(inet_ntoa(dccServerInfo.sin_addr)) + " on port " + CStringA(strDCCPort) + "...").GetBuffer();
+		ZeroMemory(getStatus,1024);
+		strcpy(getStatus,CStringA("Connecting to " + CStringA(inet_ntoa(dccServerInfo.sin_addr)) + " on port " + CStringA(strDCCPort) + "...").GetBuffer());
 
 		if (connect(dccSocket, (LPSOCKADDR)&dccServerInfo, sizeof(struct sockaddr)) == SOCKET_ERROR) {
-			getStatus = CStringA(L"Error " + GetLastError()).GetBuffer();
+			ZeroMemory(getStatus,1024);
+			strcpy(getStatus,CStringA(L"Error " + GetLastError()).GetBuffer());
 		}
 
-		//getStatus = CStringA("Recieving file " + CStringA(DCCFilename) + "...").GetBuffer();
+		ZeroMemory(getStatus,1024);
+		strcpy(getStatus,CStringA("Recieving file " + CStringA(DCCFilename) + "...").GetBuffer());
 		
 		if (DCCFilename[0] == '"') {
 			arrayShift(DCCFilename);
@@ -351,12 +358,14 @@ void DCCGet(void *derp) {
 					_itoa(DCCSize, buffer, 10);
 					send(dccSocket, buffer, strlen(buffer), 0);
 				}
-				//getStatus = CStringA(CStringA(buf1) + " kB / " + CStringA(buf2) + " kB").GetBuffer();
+				
+				ZeroMemory(getStatus,1024);
+				strcpy(getStatus,CStringA(CStringA(buf1) + " kB / " + CStringA(buf2) + " kB").GetBuffer());
 			}
 			
 			fclose(pFile);
 		} else {
-			getStatus = "Error opening file";
+			strcpy(getStatus,"Error opening file");
 			closesocket(dccSocket);
 		}
 	}
@@ -367,7 +376,8 @@ void DCCGet(void *derp) {
 	char buf2[65];
 	_itoa(DCCSize / 1024, buf2, 10);
 	
-	//getStatus = CStringA(CStringA(buf1) + " kB / " + CStringA(buf2) + " kB - Transfer complete! Exiting...").GetBuffer();
+	ZeroMemory(getStatus,1024);
+	strcpy(getStatus,CStringA(CStringA(buf1) + " kB / " + CStringA(buf2) + " kB - Transfer complete! Cleaning up...").GetBuffer());
 	exit(0);
 }
 
@@ -382,7 +392,10 @@ int socketConnect(SOCKET *connection, char *HName, int port) {
     WSADATA wsaData;
     LPHOSTENT hostEntry;
     if (WSAStartup(MAKEWORD(1, 1), &wsaData) == -1) return (-1);
-	if (useSSL) getStatus = "Initializing OpenSSL...";
+	if (useSSL) {
+		ZeroMemory(getStatus,1024);
+		strcpy(getStatus,"Initializing OpenSSL...");
+	}
 	if (useSSL) SSL_load_error_strings();
 	if (useSSL) SSL_library_init();
     if (!(hostEntry = gethostbyname(HName))) {
@@ -404,7 +417,8 @@ int socketConnect(SOCKET *connection, char *HName, int port) {
 	if (useSSL) {
 		SSL_CTX* ctx = SSL_CTX_new(SSLv23_client_method());
 		if(!ctx) {
-			getStatus = "OpenSSL: Error initializing SSL_CTX object";
+			ZeroMemory(getStatus,1024);
+			strcpy(getStatus,"OpenSSL: Error initializing SSL_CTX object");
 			return (-1);
 		}
 
@@ -412,15 +426,20 @@ int socketConnect(SOCKET *connection, char *HName, int port) {
 		SSL_CTX_free(ctx);
 
 		if(!ssl) {
-			getStatus = "OpenSSL: Error initializing SSL object";
+			ZeroMemory(getStatus,1024);
+			strcpy(getStatus,"OpenSSL: Error initializing SSL object");
 			return (-1);
 		}
 
 		SSL_set_fd(ssl, (int)*connection);
 		SSL_set_verify(ssl, SSL_VERIFY_NONE, NULL);
-		if (useSSL) getStatus = "Performing SSL authentication...";
+		if (useSSL) {
+			ZeroMemory(getStatus,1024);
+			strcpy(getStatus,"Performing SSL authentication...");
+		}
 		if(SSL_connect(ssl) != 1) {
-			getStatus = "OpenSSL: Error during SSL authentication";
+			ZeroMemory(getStatus,1024);
+			strcpy(getStatus,"OpenSSL: Error during SSL authentication");
 			return (-1);
 		}
 
@@ -461,10 +480,12 @@ void parseMessage(SOCKET *strSocket, char *sMessage) {
 
 	if (!strcmp(cMessage->szCmd,"422") || !strcmp(cMessage->szCmd,"376")) {
 		if (!ircChannelJoined) {
-			//sprintf(getStatus,"Joining %s...", ircChan);
+			ZeroMemory(getStatus,1024);
+			sprintf(getStatus,"Joining %s...", ircChan);
 			sockPrint(strSocket, "JOIN %s\n\n", ircChan);
 
-			//sprintf(getStatus,"Requesting pack %s from %s...", dccNum, dccNick);
+			ZeroMemory(getStatus,1024);
+			sprintf(getStatus,"Requesting pack %s from %s...", dccNum, dccNick);
 			sockPrint(strSocket, "PRIVMSG %s :XDCC SEND %s\n\n", dccNick, dccNum);
 
 			ircChannelJoined = true;
@@ -522,7 +543,8 @@ void parseMessage(SOCKET *strSocket, char *sMessage) {
 				DCCSize = _atoi64(messageParams[5]);
 			} 
 			if (messageParams[2] != NULL && messageParams[3] != NULL && messageParams[4] != NULL) {
-				//cout << "Recieved offer for file " << messageParams[2] << "\n";
+				ZeroMemory(getStatus,1024);
+				strcpy(getStatus,CStringA("Recieved offer for file " + CStringA(messageParams[2])).GetBuffer());
 				
 				DCCFilename = strdup(messageParams[2]);
 				DCCNick = strdup(cMessage->szNick);
@@ -530,13 +552,15 @@ void parseMessage(SOCKET *strSocket, char *sMessage) {
 				DCCPort = _atoi64(messageParams[4]);
 			
 				if (fsize(DCCFilename) == DCCSize) {
-					getStatus = "File already fully downloaded, nothing to do.";
+					ZeroMemory(getStatus,1024);
+					strcpy(getStatus,"File already fully downloaded, nothing to do.");
 					sockPrint(strSocket, "PRIVMSG %s :XDCC CANCEL\n\n", dccNick);
 					sockPrint(strSocket, "QUIT :\n\n", dccNick);
 				} else if (fsize(DCCFilename) == 0) {
 					_beginthread(DCCGet, 0, NULL);
 				} else {
-					getStatus = "File exists, resuming...";
+					ZeroMemory(getStatus,1024);
+					strcpy(getStatus,"File exists, resuming...");
 					ostringstream outStr;
 					outStr << "PRIVMSG " << cMessage->szNick << " :\1DCC RESUME " << DCCFilename << " " << DCCPort << " " <<  fsize(DCCFilename) << "\1\n\n";
 					sockPrint(strSocket,(char *)outStr.str().c_str());
