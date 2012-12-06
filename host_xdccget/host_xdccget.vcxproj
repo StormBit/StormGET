@@ -44,6 +44,8 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
+    <LibraryPath>$(MSBuildStartupDirectory)\Libraries\lib;$(LibraryPath)</LibraryPath>
+    <IncludePath>$(MSBuildStartupDirectory)\Libraries\include;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -97,8 +99,8 @@
 </Command>
     </PostBuildEvent>
     <PreBuildEvent>
-      <Command>move /Y "$(TargetDir)xdccget.exe" "$(SolutionDir)host_xdccget\res\xdccget.exe"
-</Command>
+      <Command>
+      </Command>
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>

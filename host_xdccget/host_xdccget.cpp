@@ -7,6 +7,97 @@
 #define new DEBUG_NEW
 #endif
 
+// Headers. 
+
+#include <winsock2.h>
+#include <openssl/crypto.h>
+#include <openssl/ssl.h>
+#include <openssl/err.h>
+#include <windows.h>
+#include <iostream>
+#include <cstring>
+#include <fstream>
+#include <ostream>
+#include <sstream>
+#include <process.h>
+#include <stddef.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
+#include <conio.h>
+#include <stdint.h>
+
+using namespace std;
+
+#pragma comment (lib, "ws2_32.lib") 
+#pragma comment (lib, "libeay32.lib")
+#pragma comment	(lib, "ssleay32.lib")
+
+#define _CRT_SECURE_NO_WARNINGS
+
+using namespace std;
+
+typedef struct {
+	char *szNick;
+	char *szUser;
+	char *szHost;
+	char *szCmd;
+	char *szArg[15];
+} IRCMSG, *PIRCMSG;
+
+SOCKET strSocket;
+SSL *ssl;
+SSL_CTX *ctx;
+
+bool ircChannelJoined = false;
+bool DCCResume = true;
+long long int DCCIP = 0, DCCPort = 0, DCCSize = 0;
+char* DCCFilename;
+
+char *DCCNick;
+
+int		ircTimeout;
+char*	ircNick;
+char*	ircServer;
+bool	useSSL;
+int		ircPort;
+char*	ircChan;
+char*	dccNick;
+char*	dccNum;
+
+char* getStatus = "Initializing...";
+
+PIRCMSG SplitIrcMessage(char *szMsg);
+bool arrayShift(char *cBuffer);
+int socketConnect(SOCKET *connection, char *HName, int port);
+int sockPrint(SOCKET *strSocket, char* cMessage, ...);
+void parseMessage(SOCKET *strSocket, char *cBuffer);
+void SleepJoin(void *derp);
+void MainThread(void *derp);
+
+char *int2ip(int ip) {
+  char * result = (char*) malloc (17);
+
+  sprintf(result, "%d.%d.%d.%d",
+    (ip >> 24) & 0xFF,
+    (ip >> 16) & 0xFF, 
+    (ip >>  8) & 0xFF,
+    (ip      ) & 0xFF);
+
+  return result;
+}
+
+uint64_t fsize(char* fName) {
+	FILE *pFile = NULL;
+	pFile=fopen (fName,"rb");
+	if (pFile != NULL) {
+		_fseeki64( pFile, 0, SEEK_END );
+		uint64_t size = _ftelli64( pFile );
+		fclose( pFile );
+		return size;
+	} else return 0;
+}
+
 #define BUFSIZE 128 
  
 HANDLE g_hChildStd_IN_Rd = NULL;
@@ -25,34 +116,7 @@ bool CheckOutput = false, Downloading = false;
 
 int BandcampDLPID = 0;
 
-UINT ParseOutput(LPVOID pParam) {
-	Downloading = true;
-
-	DWORD dwRead; 
-	BOOL bSuccess = FALSE;
-	HANDLE hParentStdOut = GetStdHandle(STD_OUTPUT_HANDLE);
-
-	for (;;) { 
-		while (CheckOutput) {
-			Sleep(50);
-		}
-
-		ZeroMemory(&cBuffer,BUFSIZE);
-
-		bSuccess = ReadFile( g_hChildStd_OUT_Rd, cBuffer, BUFSIZE, &dwRead, NULL);
-		if( ! bSuccess || dwRead == 0 ) break; 
-
-		char * pch;
-		pch = strtok(cBuffer,"\n");
-		if (pch != NULL) pch = strtok(NULL,"\n");
-		if (pch != NULL) strcpy(cBuffer,pch);
-		if (strlen(cBuffer) > 5) CheckOutput = true;
-	}
-
-	Downloading = false;
-
-	return 0;
-}
+char *URL;
 
 HMODULE GetCurrentModuleHandle() {
     HMODULE hMod = NULL;
@@ -61,41 +125,10 @@ HMODULE GetCurrentModuleHandle() {
 }
 
 extern "C" _declspec(dllexport) bool StormGETPluginInit() {
-	HGLOBAL hResourceLoaded;  // handle to loaded resource
-    HRSRC   hRes;              // handle/ptr to res. info.
-    char    *lpResLock;        // pointer to resource data
-    DWORD   dwSizeRes;
-    hRes = FindResource(GetCurrentModuleHandle(),MAKEINTRESOURCE(IDR_BIN1),CString(L"BIN"));
-    hResourceLoaded = LoadResource(GetCurrentModuleHandle(), hRes);
-    lpResLock = (char *) LockResource(hResourceLoaded);
-    dwSizeRes = SizeofResource(GetCurrentModuleHandle(), hRes);
-	FILE * outputRes;
-	if(outputRes = _wfopen(L"xdccget.exe", L"wb")) {
-		fwrite ((const char *) lpResLock,1,dwSizeRes,outputRes);
-		fclose(outputRes);
-	}
-
 	return TRUE;
 }
 
 extern "C" _declspec(dllexport) bool StormGETPluginExit() {
-	STARTUPINFO si;
-	PROCESS_INFORMATION pi;
-
-	ZeroMemory( &si, sizeof(si) );
-	si.cb = sizeof(si);
-	ZeroMemory( &pi, sizeof(pi) );
-
-	if (BandcampDLPID != 0) {
-		CString pid;
-		pid.Format(L"%d",BandcampDLPID);
-
-		CreateProcess(NULL, CString(L"taskkill.exe /F /PID " + pid).GetBuffer(), NULL, NULL, false, CREATE_NO_WINDOW, NULL, NULL, &si, &pi);
-		WaitForSingleObject(pi.hProcess, INFINITE);
-	}
-
-	DeleteFile(L"xdccget.exe");
-
 	return TRUE;
 }
 
@@ -105,78 +138,17 @@ extern "C" _declspec(dllexport) bool StormGETPluginConfigure() {
 }
 
 extern "C" _declspec(dllexport) bool StormGETPluginStillRunning() {
-	DWORD exitCode;
-
-	GetExitCodeProcess(pi.hProcess,&exitCode);
-
-	if (exitCode != STILL_ACTIVE) {
-		return false;
-	}
-
 	return TRUE;
 }
 
 extern "C" _declspec(dllexport) void StormGETPluginDownload(CString FileURL, CString DownloadDir) {
-	STARTUPINFO si;
-	SECURITY_ATTRIBUTES sa; 
-
-	sa.nLength = sizeof(SECURITY_ATTRIBUTES); 
-	sa.bInheritHandle = TRUE; 
-	sa.lpSecurityDescriptor = NULL; 
-
-	if ( ! CreatePipe(&g_hChildStd_OUT_Rd, &g_hChildStd_OUT_Wr, &sa, 0) ) 
-	exit(1); 
-
-	// Ensure the read handle to the pipe for STDOUT is not inherited.
-
-	if ( ! SetHandleInformation(g_hChildStd_OUT_Rd, HANDLE_FLAG_INHERIT, 0) )
-	exit(1); 
-
-	// Create a pipe for the child process's STDIN. 
-
-	if (! CreatePipe(&g_hChildStd_IN_Rd, &g_hChildStd_IN_Wr, &sa, 0)) 
-	exit(1); 
-
-	// Ensure the write handle to the pipe for STDIN is not inherited. 
-
-	if ( ! SetHandleInformation(g_hChildStd_IN_Wr, HANDLE_FLAG_INHERIT, 0) )
-	exit(1); 
-
-	DWORD exitCode = 0;
-	ZeroMemory( &si, sizeof(si) );
-	si.cb = sizeof(si);
-	ZeroMemory( &pi, sizeof(pi) );
-
-	si.hStdError = g_hChildStd_OUT_Wr;
-	si.hStdOutput = g_hChildStd_OUT_Wr;
-	si.hStdInput = g_hChildStd_IN_Rd;
-
-	si.dwFlags = STARTF_USESHOWWINDOW | STARTF_USESTDHANDLES; // STARTF_USESTDHANDLES is Required.
-	si.wShowWindow = SW_HIDE; // Prevents cmd window from flashing. Requires STARTF_USESHOWWINDOW in dwFlags.
-
-	if (GetFileAttributes(DownloadDir.GetBuffer()) != INVALID_FILE_ATTRIBUTES) {
-		int Value = CreateProcess(NULL, CString(L"xdccget.exe " + FileURL).GetBuffer(), NULL, NULL, true, 0, NULL, DownloadDir, &si, &pi);
-	} else {
-		int Value = CreateProcess(NULL, CString(L"xdccget.exe " + FileURL).GetBuffer(), NULL, NULL, true, 0, NULL, NULL, &si, &pi);
-	}
-
-	BandcampDLPID = pi.dwProcessId;
-
-	CWinThread* pParseOutput = AfxBeginThread(ParseOutput,THREAD_PRIORITY_NORMAL);
+	URL = strdup(CStringA(FileURL).GetBuffer());
+	_beginthread(MainThread, 0, NULL);
 }
 
 extern "C" _declspec(dllexport) char* StormGETPluginGetStatus() {
-	if (!CheckOutput) {
-		Sleep(500);
-	}
-
-	if ((unsigned)strlen(cBuffer) > 3) {
-		strcpy(cBufferArchive,cBuffer);
-	}
-
-	CheckOutput = false;
-
-	return cBufferArchive;
+	Sleep(500);
+	return getStatus;
 }
 
 extern "C" _declspec(dllexport) int StormGETPluginGetProgress() {
@@ -224,4 +196,433 @@ extern "C" _declspec(dllexport) int StormGETPluginGetProgress() {
 
 extern "C" _declspec(dllexport) char * StormGETPluginEnumerateConditions() {
 	return "xdcc://*";
+}
+
+#define CHUNKSIZE 1024
+
+void MainThread(void *derp) {
+	char *portStr;
+
+	for (int i=0;i<7;i++) arrayShift(URL);
+
+	char * pch;
+	pch = strtok (URL,":");
+	if (pch != NULL) ircServer = strdup(pch);
+	pch = strtok (NULL,"/");
+	if (pch != NULL) {
+		if (pch[0] == '+') {
+			useSSL = true;
+			portStr = strdup(pch);
+			arrayShift(portStr);
+			ircPort = atoi(portStr);
+		} else {
+			useSSL = false;
+			portStr = strdup(pch);
+			ircPort = atoi(pch);
+		}
+	}	
+	pch = strtok (NULL,"/");
+	if (pch != NULL) ircNick = strdup(pch);
+	pch = strtok (NULL,"/");
+	if (pch != NULL) ircChan = strdup(pch);
+	pch = strtok (NULL,"/");
+	if (pch != NULL) dccNick = strdup(pch);
+	pch = strtok (NULL,"/");
+	if (pch != NULL) dccNum = strdup(pch);
+
+	ircTimeout	= 10;
+
+    char cBuffer[128000];
+    char cOutBuffer[512];
+    char *lineSPLIT[512];
+    char *args[10];
+    int bRecv;
+    PIRCMSG sMessage;
+
+	//getStatus = CStringA("Connecting to server " + CStringA(ircServer) + ":" + portStr + "...").GetBuffer();
+
+    int tries;
+    for(tries=1; socketConnect(&strSocket, ircServer, ircPort)!=0; tries++) {
+        sprintf(getStatus,"Connection attempt %d failed...",tries);
+        Sleep(ircTimeout*1000);
+    }
+
+	getStatus = "Logging in...";
+	sockPrint(&strSocket, "NICK %s\n\n", ircNick);
+    sockPrint(&strSocket, "USER %s * * :%s\n\n", ircNick, ircNick);
+    getStatus = "Waiting for server...";
+
+    while(1) {
+        memset(cBuffer, 0, 128000);
+        memset(cOutBuffer, 0, 512);
+
+		if (useSSL) bRecv = SSL_read(ssl, cBuffer, 128000);
+        else bRecv = recv(strSocket, cBuffer, 128000, 0);
+        if( (bRecv == 0) || (bRecv == SOCKET_ERROR) ) break;
+
+		char * pch;
+		pch = strtok (cBuffer,"\n\n");
+		while (pch != NULL) {
+			//cout << pch << "\n";
+
+			if(pch[0] == 'P' && pch[1] == 'I' && pch[2] == 'N' && pch[3] == 'G') {
+				strcpy(cOutBuffer, pch);
+				cOutBuffer[0] = 'P';
+				cOutBuffer[1] = 'O';
+				cOutBuffer[2] = 'N';
+				cOutBuffer[3] = 'G';
+				sockPrint(&strSocket, cOutBuffer);
+				//cout << "\n";
+			} else {
+				parseMessage(&strSocket, pch);
+			}  
+
+			pch = strtok (NULL, "\n\n");
+		}
+
+    }
+	if (useSSL) SSL_shutdown(ssl);
+    closesocket(strSocket);
+	if (useSSL) SSL_free(ssl);
+    //return (1);
+}
+
+void DCCGet(void *derp) {
+	SOCKET dccSocket;
+	SOCKADDR_IN dccServerInfo;
+    WSADATA wsaData;
+    LPHOSTENT hostEntry;
+	char cFileCache[CHUNKSIZE];
+	int bRecv;
+	FILE * pFile;
+
+	long long int totalRecieved = 0;
+
+    WSAStartup(MAKEWORD(1, 1), &wsaData);
+
+	if ((dccSocket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP)) == INVALID_SOCKET) {
+		getStatus = CStringA(L"Error " + GetLastError()).GetBuffer();
+	} else {
+		dccServerInfo.sin_family = AF_INET;
+		dccServerInfo.sin_addr.s_addr = ntohl(DCCIP);
+		dccServerInfo.sin_port = htons(DCCPort);
+
+		char *strDCCPort = "";
+		itoa(DCCPort,strDCCPort,10);
+
+		//getStatus = CStringA("Connecting to " + CStringA(inet_ntoa(dccServerInfo.sin_addr)) + " on port " + CStringA(strDCCPort) + "...").GetBuffer();
+
+		if (connect(dccSocket, (LPSOCKADDR)&dccServerInfo, sizeof(struct sockaddr)) == SOCKET_ERROR) {
+			getStatus = CStringA(L"Error " + GetLastError()).GetBuffer();
+		}
+
+		//getStatus = CStringA("Recieving file " + CStringA(DCCFilename) + "...").GetBuffer();
+		
+		if (DCCFilename[0] == '"') {
+			arrayShift(DCCFilename);
+			DCCFilename[sizeof(DCCFilename)] = '\0';
+		}
+
+		if (DCCResume == true) {
+			totalRecieved = fsize(DCCFilename);
+			pFile = fopen (DCCFilename,"ab");
+		} else {
+			pFile = fopen (DCCFilename,"wb");
+		}
+
+		if (pFile!=NULL) {
+			while(1) {
+				memset(cFileCache, 0, CHUNKSIZE);
+
+				bRecv = recv(dccSocket, cFileCache, sizeof(cFileCache), 0);
+				if( (bRecv == 0) || (bRecv == SOCKET_ERROR) ) break;
+				fwrite (cFileCache, 1, bRecv, pFile);
+
+				totalRecieved += bRecv;
+
+				char buf1[65];
+				_itoa(totalRecieved / 1024, buf1, 10);
+
+				char buf2[65];
+				_itoa(DCCSize / 1024, buf2, 10);
+
+				if (DCCSize == totalRecieved) {
+					char buffer[65];
+					_itoa(DCCSize, buffer, 10);
+					send(dccSocket, buffer, strlen(buffer), 0);
+				}
+				//getStatus = CStringA(CStringA(buf1) + " kB / " + CStringA(buf2) + " kB").GetBuffer();
+			}
+			
+			fclose(pFile);
+		} else {
+			getStatus = "Error opening file";
+			closesocket(dccSocket);
+		}
+	}
+
+	char buf1[65];
+	_itoa(totalRecieved / 1024, buf1, 10);
+
+	char buf2[65];
+	_itoa(DCCSize / 1024, buf2, 10);
+	
+	//getStatus = CStringA(CStringA(buf1) + " kB / " + CStringA(buf2) + " kB - Transfer complete! Exiting...").GetBuffer();
+	exit(0);
+}
+
+bool arrayShift(char *cBuffer) {
+    for(int i=0; i<strlen(cBuffer); i++) cBuffer[i]=cBuffer[i+1];
+    cBuffer[strlen(cBuffer)] = '\0';
+    return (1);
+}
+
+int socketConnect(SOCKET *connection, char *HName, int port) {
+    SOCKADDR_IN ircServerInfo;
+    WSADATA wsaData;
+    LPHOSTENT hostEntry;
+    if (WSAStartup(MAKEWORD(1, 1), &wsaData) == -1) return (-1);
+	if (useSSL) getStatus = "Initializing OpenSSL...";
+	if (useSSL) SSL_load_error_strings();
+	if (useSSL) SSL_library_init();
+    if (!(hostEntry = gethostbyname(HName))) {
+        WSACleanup();
+        return (-1);
+    }
+    if ((*connection = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP)) == INVALID_SOCKET) {
+        WSACleanup();
+        return (-1);
+    }
+    ircServerInfo.sin_family = AF_INET;
+    ircServerInfo.sin_addr = *((LPIN_ADDR)*hostEntry->h_addr_list);
+    ircServerInfo.sin_port = htons(port);
+    if (connect(*connection, (LPSOCKADDR)&ircServerInfo, sizeof(struct sockaddr)) == SOCKET_ERROR) {
+        WSACleanup();
+        return (-1);
+    }
+
+	if (useSSL) {
+		SSL_CTX* ctx = SSL_CTX_new(SSLv23_client_method());
+		if(!ctx) {
+			getStatus = "OpenSSL: Error initializing SSL_CTX object";
+			return (-1);
+		}
+
+		ssl = SSL_new(ctx);
+		SSL_CTX_free(ctx);
+
+		if(!ssl) {
+			getStatus = "OpenSSL: Error initializing SSL object";
+			return (-1);
+		}
+
+		SSL_set_fd(ssl, (int)*connection);
+		SSL_set_verify(ssl, SSL_VERIFY_NONE, NULL);
+		if (useSSL) getStatus = "Performing SSL authentication...";
+		if(SSL_connect(ssl) != 1) {
+			getStatus = "OpenSSL: Error during SSL authentication";
+			return (-1);
+		}
+
+	}
+    return (0);
+}
+
+int sockPrint(SOCKET *strSocket, char* cMessage, ...) {
+    char cBuffer[512];
+    int iError;
+    va_list va;
+    va_start(va, cMessage);
+    vsprintf(cBuffer, cMessage, va);
+    va_end(va);
+	//cout << ">> " << cBuffer;
+
+	if (useSSL) {
+		SSL_write(ssl, cBuffer, strlen(cBuffer));
+		SSL_write(ssl, "\n\n", strlen("\n\n"));
+	} else {
+		send(*strSocket, cBuffer, strlen(cBuffer), 0);
+		send(*strSocket, "\n\n", strlen("\n\n"), 0);
+	}
+    return 1;
+}
+
+
+void parseMessage(SOCKET *strSocket, char *sMessage) {
+	/* Struct: 	
+		char *szNick;
+		char *szUser;
+		char *szHost;
+		char *szCmd;
+		char *szArg[15];
+	*/
+	//cout << ">> " << sMessage << "\n\n";
+	PIRCMSG cMessage = SplitIrcMessage(sMessage);
+
+	if (!strcmp(cMessage->szCmd,"422") || !strcmp(cMessage->szCmd,"376")) {
+		if (!ircChannelJoined) {
+			//sprintf(getStatus,"Joining %s...", ircChan);
+			sockPrint(strSocket, "JOIN %s\n\n", ircChan);
+
+			//sprintf(getStatus,"Requesting pack %s from %s...", dccNum, dccNick);
+			sockPrint(strSocket, "PRIVMSG %s :XDCC SEND %s\n\n", dccNick, dccNum);
+
+			ircChannelJoined = true;
+		}
+	}
+	if (cMessage->szArg[1] != NULL) {
+		if (!strcmp(cMessage->szArg[1],"\1VERSION\1")) {
+			sockPrint(strSocket, "NOTICE %s :irssi v0.8.15 - running on Windows x86_64\n\n", cMessage->szNick);
+		}
+	} 	
+
+	if (cMessage->szArg[1] != NULL) {	
+		char* messageParams[5];
+		for(int x = 0; x < 6; x++) {
+			messageParams[x] = NULL;
+		}
+	
+		char cMsgArray[512];
+		ZeroMemory(&cMsgArray,512);
+		strcpy(cMsgArray,cMessage->szArg[1]);
+		strcat(cMsgArray," ");
+
+		char* szPos = strdup(cMsgArray);
+
+		for(int x = 0; x < 6; x++) {
+			if(*szPos == '"') {
+				char cQuotedMessage[512];
+				ZeroMemory(cQuotedMessage,512);
+				
+				char *szSp = strstr(szPos, " ");
+				if(szSp != NULL) {
+					*szSp= 0;
+					strcat(cQuotedMessage,szPos);
+					szPos += (strlen(szPos) + 1);
+				} else {
+					messageParams[x] = cMessage->szArg[1];
+					break;
+				}
+				
+				break;	
+			}
+			char *szSp = strstr(szPos, " ");
+		
+			if(szSp != NULL) {
+				*szSp= 0;
+				messageParams[x] = szPos;
+				szPos += (strlen(szPos) + 1);
+			} else {
+				messageParams[x] = cMessage->szArg[1];
+				break;
+			}
+		}
+		if (!strcmp(messageParams[0],"\1DCC") && !strcmp(messageParams[1],"SEND")) {
+			if (messageParams[5] != NULL) {
+				DCCSize = _atoi64(messageParams[5]);
+			} 
+			if (messageParams[2] != NULL && messageParams[3] != NULL && messageParams[4] != NULL) {
+				//cout << "Recieved offer for file " << messageParams[2] << "\n";
+				
+				DCCFilename = strdup(messageParams[2]);
+				DCCNick = strdup(cMessage->szNick);
+				DCCIP = _atoi64(messageParams[3]);
+				DCCPort = _atoi64(messageParams[4]);
+			
+				if (fsize(DCCFilename) == DCCSize) {
+					getStatus = "File already fully downloaded, nothing to do.";
+					sockPrint(strSocket, "PRIVMSG %s :XDCC CANCEL\n\n", dccNick);
+					sockPrint(strSocket, "QUIT :\n\n", dccNick);
+				} else if (fsize(DCCFilename) == 0) {
+					_beginthread(DCCGet, 0, NULL);
+				} else {
+					getStatus = "File exists, resuming...";
+					ostringstream outStr;
+					outStr << "PRIVMSG " << cMessage->szNick << " :\1DCC RESUME " << DCCFilename << " " << DCCPort << " " <<  fsize(DCCFilename) << "\1\n\n";
+					sockPrint(strSocket,(char *)outStr.str().c_str());
+
+					// Any XDCC bot out there should support resumes, so at this point we wait for an ACCEPT and then connect.
+					DCCResume = true;
+				}
+			}
+		} else if (!strcmp(messageParams[0],"\1DCC") && !strcmp(messageParams[1],"ACCEPT")) {
+			_beginthread(DCCGet, 0, NULL);
+		}
+	}
+}
+
+PIRCMSG SplitIrcMessage(char *szMsg) {
+	PIRCMSG pMsg = new IRCMSG;
+	char *szPos = szMsg;
+
+	if(szMsg[0] == ':') {
+		char *szNickS = strstr(szPos, "!");
+
+		if(szNickS != NULL) {
+			*szNickS = 0;
+			pMsg->szNick = (szPos + 1);
+			szPos += (strlen(szPos) + 1);
+		} else {
+			pMsg->szNick = "NONICK";
+		}
+
+		char *szUserS = strstr(szPos, "@");
+
+		if(szUserS != NULL) {
+			*szUserS = 0;
+			pMsg->szUser = szPos;
+			szPos += (strlen(szPos) + 1);	
+		} else { 
+			pMsg->szUser = "NOUSER";
+		}
+
+		char *szSpaceS = strstr(szPos, " ");
+		
+		if(szSpaceS != NULL) {
+			*szSpaceS = 0;
+			pMsg->szHost = szPos;
+			szPos += (strlen(szPos) + 1);
+		} else {
+			pMsg->szHost = "no-hostmask.bot";
+		}
+	} else {
+		pMsg->szNick = "NONICK";
+		pMsg->szUser = "NOUSER";
+		pMsg->szHost = "no-hostmask.bot";
+	}
+
+	char *szSpaceTwo = strstr(szPos, " ");
+	
+	if(szSpaceTwo != NULL) {
+		*szSpaceTwo = 0;
+		pMsg->szCmd = szPos;
+		szPos += (strlen(szPos) + 1);
+	} else {
+		pMsg->szCmd = "UNKNOWN";
+	}
+
+
+	for(int x = 0; x < 15; x++) {
+		pMsg->szArg[x] = NULL;
+	}
+	
+	for(int x = 0; x < 15; x++) {
+		if(*szPos == ':') {
+			pMsg->szArg[x] = (szPos + 1);
+			break;
+		}
+
+		char *szSp = strstr(szPos, " ");
+		
+		if(szSp != NULL) {
+			*szSp= 0;
+			pMsg->szArg[x] = szPos;
+			szPos += (strlen(szPos) + 1);
+		} else {
+			pMsg->szArg[x] = szPos;
+			break;
+		}
+	}
+
+	return pMsg;
 }
