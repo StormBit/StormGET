@@ -14,12 +14,7 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "host_bandcamp", "host_bandc
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "bandcampdl", "bandcampdl\bandcampdl.csproj", "{689EAA16-7310-4640-841E-D55D41F071E9}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "xdccget", "xdccget\xdccget.vcxproj", "{ABE3043C-5F55-4E43-95A4-49C0C29FC1B2}"
-EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "host_xdccget", "host_xdccget\host_xdccget.vcxproj", "{EBB2C0DE-6E8E-488C-A15D-C9C2565480D3}"
-	ProjectSection(ProjectDependencies) = postProject
-		{ABE3043C-5F55-4E43-95A4-49C0C29FC1B2} = {ABE3043C-5F55-4E43-95A4-49C0C29FC1B2}
-	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -61,16 +56,6 @@ Global
 		{689EAA16-7310-4640-841E-D55D41F071E9}.Release|Win32.ActiveCfg = Release|x86
 		{689EAA16-7310-4640-841E-D55D41F071E9}.Release|x86.ActiveCfg = Release|x86
 		{689EAA16-7310-4640-841E-D55D41F071E9}.Release|x86.Build.0 = Release|x86
-		{ABE3043C-5F55-4E43-95A4-49C0C29FC1B2}.Debug|Mixed Platforms.ActiveCfg = Debug|Win32
-		{ABE3043C-5F55-4E43-95A4-49C0C29FC1B2}.Debug|Mixed Platforms.Build.0 = Debug|Win32
-		{ABE3043C-5F55-4E43-95A4-49C0C29FC1B2}.Debug|Win32.ActiveCfg = Debug|Win32
-		{ABE3043C-5F55-4E43-95A4-49C0C29FC1B2}.Debug|Win32.Build.0 = Debug|Win32
-		{ABE3043C-5F55-4E43-95A4-49C0C29FC1B2}.Debug|x86.ActiveCfg = Debug|Win32
-		{ABE3043C-5F55-4E43-95A4-49C0C29FC1B2}.Release|Mixed Platforms.ActiveCfg = Release|Win32
-		{ABE3043C-5F55-4E43-95A4-49C0C29FC1B2}.Release|Mixed Platforms.Build.0 = Release|Win32
-		{ABE3043C-5F55-4E43-95A4-49C0C29FC1B2}.Release|Win32.ActiveCfg = Release|Win32
-		{ABE3043C-5F55-4E43-95A4-49C0C29FC1B2}.Release|Win32.Build.0 = Release|Win32
-		{ABE3043C-5F55-4E43-95A4-49C0C29FC1B2}.Release|x86.ActiveCfg = Release|Win32
 		{EBB2C0DE-6E8E-488C-A15D-C9C2565480D3}.Debug|Mixed Platforms.ActiveCfg = Debug|Win32
 		{EBB2C0DE-6E8E-488C-A15D-C9C2565480D3}.Debug|Mixed Platforms.Build.0 = Debug|Win32
 		{EBB2C0DE-6E8E-488C-A15D-C9C2565480D3}.Debug|Win32.ActiveCfg = Debug|Win32
