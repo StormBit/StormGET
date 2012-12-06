@@ -144,8 +144,9 @@ extern "C" _declspec(dllexport) void StormGETPluginDownload(CString FileURL, CSt
 }
 
 extern "C" _declspec(dllexport) char* StormGETPluginGetStatus() {
-	Sleep(500);
+	Sleep(50);
 	return getStatus;
+	
 }
 
 extern "C" _declspec(dllexport) int StormGETPluginGetProgress() {
@@ -311,7 +312,8 @@ void DCCGet(void *derp) {
 		dccServerInfo.sin_addr.s_addr = ntohl(DCCIP);
 		dccServerInfo.sin_port = htons(DCCPort);
 
-		char *strDCCPort = "";
+		char strDCCPort[8];
+		ZeroMemory(strDCCPort,8);
 		itoa(DCCPort,strDCCPort,10);
 
 		ZeroMemory(getStatus,1024);
@@ -322,6 +324,7 @@ void DCCGet(void *derp) {
 			strcpy(getStatus,CStringA(L"Error " + GetLastError()).GetBuffer());
 		}
 
+		AfxMessageBox(L"Connecting...");
 		ZeroMemory(getStatus,1024);
 		strcpy(getStatus,CStringA("Recieving file " + CStringA(DCCFilename) + "...").GetBuffer());
 		
@@ -550,7 +553,7 @@ void parseMessage(SOCKET *strSocket, char *sMessage) {
 				DCCNick = strdup(cMessage->szNick);
 				DCCIP = _atoi64(messageParams[3]);
 				DCCPort = _atoi64(messageParams[4]);
-			
+
 				if (fsize(DCCFilename) == DCCSize) {
 					ZeroMemory(getStatus,1024);
 					strcpy(getStatus,"File already fully downloaded, nothing to do.");
