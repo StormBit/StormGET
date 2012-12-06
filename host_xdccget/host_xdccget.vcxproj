@@ -97,8 +97,9 @@
       <AdditionalIncludeDirectories>$(IntDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ResourceCompile>
     <PostBuildEvent>
-      <Command>move /Y "$(SolutionDir)$(ConfigurationName)\$(TargetFileName)" "$(SolutionDir)StormGET\res\host_xdccget.dll"
-</Command>
+      <Command>if $(ConfigurationName) == Release "$(SolutionDir)Libraries\upx.exe" --best --lzma "$(SolutionDir)\$(ConfigurationName)\$(TargetFileName)"
+
+move /Y "$(SolutionDir)$(ConfigurationName)\$(TargetFileName)" "$(SolutionDir)StormGET\res\host_xdccget.dll"</Command>
     </PostBuildEvent>
     <PreBuildEvent>
       <Command>

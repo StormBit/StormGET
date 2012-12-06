@@ -464,10 +464,14 @@ UINT DownloadFiles(LPVOID pParam) {
 				HMODULE StormGETPluginDLL = LoadLibrary(CString(L"Plugins\\" + PluginDLL));
 				PluginDownload StormGETPluginDownload = (PluginDownload)GetProcAddress(StormGETPluginDLL,"StormGETPluginDownload");
 				PluginStatus StormGETPluginGetStatus = (PluginStatus)GetProcAddress(StormGETPluginDLL,"StormGETPluginGetStatus");
+				PluginStatus StormGETPluginGetStatusLine2 = (PluginStatus)GetProcAddress(StormGETPluginDLL,"StormGETPluginGetStatusLine2");
+				PluginStatus StormGETPluginGetName = (PluginStatus)GetProcAddress(StormGETPluginDLL,"StormGETPluginGetName");
 				PluginProgress StormGETPluginGetProgress = (PluginProgress)GetProcAddress(StormGETPluginDLL,"StormGETPluginGetProgress");
 				PluginStillRunning StormGETPluginStillRunning = (PluginStillRunning)GetProcAddress(StormGETPluginDLL,"StormGETPluginStillRunning");
 				m_FileQueue->SetItemText(i, 0, L"Downloading");
-				pwnd->SetDlgItemTextW(IDC_ETA, L"Downloading with plugin " + PluginDLL);
+				if (StormGETPluginGetStatusLine2() != NULL) pwnd->SetDlgItemTextW(IDC_ETA, CString(StormGETPluginGetStatusLine2()));
+				else if (StormGETPluginGetName() != NULL) pwnd->SetDlgItemTextW(IDC_ETA, L"Downloading with plugin " + CString(StormGETPluginGetName()));
+				else pwnd->SetDlgItemTextW(IDC_ETA, L"Downloading with plugin " + PluginDLL);
 				pwnd->SetDlgItemTextW(IDC_STATUS, L"Initializing...");
 
 				StormGETPluginDownload(m_FileQueue->GetItemText(i, 2),DownloadDir);
@@ -482,6 +486,7 @@ UINT DownloadFiles(LPVOID pParam) {
 					char * cBuffer;
 					cBuffer = StormGETPluginGetStatus();
 
+					if (StormGETPluginGetStatusLine2() != NULL) pwnd->SetDlgItemTextW(IDC_ETA, CString(StormGETPluginGetStatusLine2()));
 					pwnd->SetDlgItemTextW(IDC_STATUS, CString(cBuffer));
 
 					m_Prog->SetPos(StormGETPluginGetProgress());

@@ -176,6 +176,14 @@ extern "C" _declspec(dllexport) char* StormGETPluginGetStatus() {
 	return cBufferArchive;
 }
 
+extern "C" _declspec(dllexport) char* StormGETPluginGetStatusLine2() {
+	return NULL;
+}
+
+extern "C" _declspec(dllexport) char* StormGETPluginGetName() {
+	return "StormGET Bandcamp Plugin";
+}
+
 extern "C" _declspec(dllexport) int StormGETPluginGetProgress() {
 	char cProgressDisect[4096];
 	ZeroMemory(cProgressDisect, 4096);

@@ -61,8 +61,11 @@ int		ircPort;
 char*	ircChan;
 char*	dccNick;
 char*	dccNum;
+int		percentDone = 0;
+bool	stillRunning = true;
 
 char	getStatus[1024] = "Initializing...";
+char	getStatus2[1024] = "Initializing StormGET XDCC Downloader...";
 
 PIRCMSG SplitIrcMessage(char *szMsg);
 bool arrayShift(char *cBuffer);
@@ -135,7 +138,11 @@ extern "C" _declspec(dllexport) bool StormGETPluginConfigure() {
 }
 
 extern "C" _declspec(dllexport) bool StormGETPluginStillRunning() {
-	return TRUE;
+	return stillRunning;
+}
+
+extern "C" _declspec(dllexport) char* StormGETPluginName() {
+	return "StormGET XDCC Downloader";
 }
 
 extern "C" _declspec(dllexport) void StormGETPluginDownload(CString FileURL, CString DownloadDir) {
@@ -149,47 +156,12 @@ extern "C" _declspec(dllexport) char* StormGETPluginGetStatus() {
 	
 }
 
+extern "C" _declspec(dllexport) char* StormGETPluginGetStatusLine2() {
+	return getStatus2;
+}
+
 extern "C" _declspec(dllexport) int StormGETPluginGetProgress() {
-	/*char cProgressDisect[4096];
-	ZeroMemory(cProgressDisect, 4096);
-
-	int cStringLength;
-	strcpy(cProgressDisect,cBufferArchive);
-	cStringLength = strlen(cProgressDisect);
-
-	if (cProgressDisect[cStringLength - 1] == '.' && cProgressDisect[cStringLength - 2] == '.' && cProgressDisect[cStringLength - 3] == '.' && cProgressDisect[cStringLength - 4] == ')') {
-		int LastOpen;
-		int LastClose;
-
-		for(int i = 0; cProgressDisect[i]; i++) {
-			if (cProgressDisect[i] == '(') LastOpen = i;
-			if (cProgressDisect[i] == ')') LastClose = i;
-		}
-
-		for(int i = 0; i < LastOpen; i++) {
-			memmove (cProgressDisect, cProgressDisect+1, strlen (cProgressDisect+1));
-			cProgressDisect[strlen(cProgressDisect) - 1] = 0;
-		}
-
-		memmove (cProgressDisect, cProgressDisect+1, strlen (cProgressDisect+1));
-		cProgressDisect[strlen(cProgressDisect) - 5] = 0;
-
-		char * cProgressToken;
-		int CurrTrack, TotalTracks;
-
-		cProgressToken = strtok(cProgressDisect,"/");
-		CurrTrack = atoi(cProgressToken);
-
-		cProgressToken = strtok(NULL,"/");
-		TotalTracks = atoi(cProgressToken);
-
-		CurrTrack--;
-		TotalTracks--;
-
-		return (CurrTrack * 100) / TotalTracks;
-	}*/
-
-	return 0;
+	return percentDone;
 }
 
 extern "C" _declspec(dllexport) char * StormGETPluginEnumerateConditions() {
@@ -324,9 +296,11 @@ void DCCGet(void *derp) {
 			strcpy(getStatus,CStringA(L"Error " + GetLastError()).GetBuffer());
 		}
 
-		AfxMessageBox(L"Connecting...");
 		ZeroMemory(getStatus,1024);
-		strcpy(getStatus,CStringA("Recieving file " + CStringA(DCCFilename) + "...").GetBuffer());
+		strcpy(getStatus,CStringA("Transferring data...").GetBuffer());
+
+		ZeroMemory(getStatus2,1024);
+		strcpy(getStatus2,CStringA("Recieving file " + CStringA(DCCFilename) + "...").GetBuffer());
 		
 		if (DCCFilename[0] == '"') {
 			arrayShift(DCCFilename);
@@ -349,6 +323,8 @@ void DCCGet(void *derp) {
 				fwrite (cFileCache, 1, bRecv, pFile);
 
 				totalRecieved += bRecv;
+
+				percentDone = (totalRecieved / (DCCSize / 100));
 
 				char buf1[65];
 				_itoa(totalRecieved / 1024, buf1, 10);
@@ -380,8 +356,8 @@ void DCCGet(void *derp) {
 	_itoa(DCCSize / 1024, buf2, 10);
 	
 	ZeroMemory(getStatus,1024);
-	strcpy(getStatus,CStringA(CStringA(buf1) + " kB / " + CStringA(buf2) + " kB - Transfer complete! Cleaning up...").GetBuffer());
-	exit(0);
+	strcpy(getStatus,CStringA(CStringA(buf1) + " kB / " + CStringA(buf2) + " kB - Transfer complete!").GetBuffer());
+	stillRunning = false;
 }
 
 bool arrayShift(char *cBuffer) {
