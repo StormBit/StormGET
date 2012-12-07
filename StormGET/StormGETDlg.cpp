@@ -470,7 +470,7 @@ UINT DownloadFiles(LPVOID pParam) {
 				PluginStillRunning StormGETPluginStillRunning = (PluginStillRunning)GetProcAddress(StormGETPluginDLL,"StormGETPluginStillRunning");
 				m_FileQueue->SetItemText(i, 0, L"Downloading");
 				if (StormGETPluginGetStatusLine2() != NULL) pwnd->SetDlgItemTextW(IDC_ETA, CString(StormGETPluginGetStatusLine2()));
-				else if (StormGETPluginGetName() != NULL) pwnd->SetDlgItemTextW(IDC_ETA, L"Downloading with plugin " + CString(StormGETPluginGetName()));
+				else if (StormGETPluginGetName() != NULL) pwnd->SetDlgItemTextW(IDC_ETA, L"Downloading with " + CString(StormGETPluginGetName()));
 				else pwnd->SetDlgItemTextW(IDC_ETA, L"Downloading with plugin " + PluginDLL);
 				pwnd->SetDlgItemTextW(IDC_STATUS, L"Initializing...");
 

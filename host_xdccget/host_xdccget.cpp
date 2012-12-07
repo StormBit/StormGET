@@ -357,7 +357,6 @@ void DCCGet(void *derp) {
 	
 	ZeroMemory(getStatus,1024);
 	strcpy(getStatus,CStringA(CStringA(buf1) + " kB / " + CStringA(buf2) + " kB - Transfer complete!").GetBuffer());
-	stillRunning = false;
 }
 
 bool arrayShift(char *cBuffer) {
@@ -535,6 +534,7 @@ void parseMessage(SOCKET *strSocket, char *sMessage) {
 					strcpy(getStatus,"File already fully downloaded, nothing to do.");
 					sockPrint(strSocket, "PRIVMSG %s :XDCC CANCEL\n\n", dccNick);
 					sockPrint(strSocket, "QUIT :\n\n", dccNick);
+					stillRunning = false;
 				} else if (fsize(DCCFilename) == 0) {
 					_beginthread(DCCGet, 0, NULL);
 				} else {

@@ -102,8 +102,6 @@ if $(ConfigurationName) == Release "$(SolutionDir)Libraries\upx.exe" --best --lz
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <None Include="..\..\..\..\Spinner\Full\01.ico" />
-    <None Include="ReadMe.txt" />
     <None Include="res\About.bmp" />
     <None Include="res\aria2c.exe" />
     <None Include="res\host_bandcamp.dll" />
