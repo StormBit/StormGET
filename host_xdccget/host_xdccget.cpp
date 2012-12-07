@@ -43,6 +43,7 @@ typedef struct {
 } IRCMSG, *PIRCMSG;
 
 SOCKET strSocket;
+SOCKET dccSocket;
 SSL *ssl;
 SSL_CTX *ctx;
 
@@ -74,6 +75,10 @@ int sockPrint(SOCKET *strSocket, char* cMessage, ...);
 void parseMessage(SOCKET *strSocket, char *cBuffer);
 void SleepJoin(void *derp);
 void MainThread(void *derp);
+
+bool speedCalculated = false;
+UINT64 recvTotal = 0;
+UINT64 recvSpeed = 0;
 
 char *int2ip(int ip) {
   char * result = (char*) malloc (17);
@@ -128,7 +133,15 @@ extern "C" _declspec(dllexport) bool StormGETPluginInit() {
 	return TRUE;
 }
 
+extern "C" _declspec(dllexport) bool StormGETPluginStop() {
+	closesocket(dccSocket);
+	sockPrint(&strSocket, "QUIT :\r\n");
+	closesocket(strSocket);
+	return TRUE;
+}
+
 extern "C" _declspec(dllexport) bool StormGETPluginExit() {
+	StormGETPluginStop();
 	return TRUE;
 }
 
@@ -151,9 +164,7 @@ extern "C" _declspec(dllexport) void StormGETPluginDownload(CString FileURL, CSt
 }
 
 extern "C" _declspec(dllexport) char* StormGETPluginGetStatus() {
-	Sleep(50);
 	return getStatus;
-	
 }
 
 extern "C" _declspec(dllexport) char* StormGETPluginGetStatusLine2() {
@@ -263,8 +274,30 @@ void MainThread(void *derp) {
     //return (1);
 }
 
+void SpeedCalc (void *derp) {
+	UINT64 snap1 = 0, snap2 = 0, snap3 = 0, snap4 = 0, snap5 = 0, loopCount = 0;
+
+	while (stillRunning) {
+		loopCount++;
+
+		snap5 = snap4;
+		snap4 = snap3;
+		snap3 = snap2;
+		snap2 = snap1;
+
+		snap1 = recvTotal;
+
+		recvSpeed = ((snap1 - snap2) + (snap2 - snap3) + (snap3 - snap4) + (snap4 - snap5)) / 5; 
+
+		if (loopCount >= 5) {
+			speedCalculated = true;
+		}
+
+		Sleep(1000);
+	}
+}
+
 void DCCGet(void *derp) {
-	SOCKET dccSocket;
 	SOCKADDR_IN dccServerInfo;
     WSADATA wsaData;
     LPHOSTENT hostEntry;
@@ -315,6 +348,7 @@ void DCCGet(void *derp) {
 		}
 
 		if (pFile!=NULL) {
+			_beginthread(SpeedCalc, 0, NULL);
 			while(1) {
 				memset(cFileCache, 0, CHUNKSIZE);
 
@@ -323,23 +357,99 @@ void DCCGet(void *derp) {
 				fwrite (cFileCache, 1, bRecv, pFile);
 
 				totalRecieved += bRecv;
+				recvTotal += bRecv;
 
 				percentDone = (totalRecieved / (DCCSize / 100));
 
-				char buf1[65];
-				_itoa(totalRecieved / 1024, buf1, 10);
 
-				char buf2[65];
-				_itoa(DCCSize / 1024, buf2, 10);
+				char buf1[128];
+				if ((totalRecieved / 1024) > 1048576) {
+					_itoa(totalRecieved / 1073741824, buf1, 10);
+					strcat(buf1," GB");
+				} else if ((totalRecieved / 1024) > 1024) {
+					_itoa(totalRecieved / 1048576, buf1, 10);
+					strcat(buf1," MB");
+				} else if (totalRecieved > 1024) {
+					_itoa(totalRecieved / 1024, buf1, 10);
+					strcat(buf1," kB");
+				} else {				
+					_itoa(totalRecieved, buf1, 10);
+					strcat(buf1," bytes");
+				}
+
+				char buf2[128];
+				if ((DCCSize / 1024) > 1048576) {
+					_itoa(DCCSize / 1073741824, buf2, 10);
+					strcat(buf2," GB");
+				} else if ((DCCSize / 1024) > 1024) {
+					_itoa(DCCSize / 1048576, buf2, 10);
+					strcat(buf2," MB");
+				} else if (DCCSize > 1024) {
+					_itoa(DCCSize / 1024, buf2, 10);
+					strcat(buf2," kB");
+				} else {				
+					_itoa(DCCSize, buf2, 10);
+					strcat(buf2," bytes ");
+				}
+				
+				ZeroMemory(getStatus,1024);
+				if (!speedCalculated) strcpy(getStatus,CStringA("Downloaded " + CStringA(buf1) + " of " + CStringA(buf2) + " (Calculating...)").GetBuffer());
+				else {
+					char buf3[128];
+					
+					if ((recvSpeed / 1024) > 1048576) {
+						_itoa(recvSpeed / 1073741824, buf3, 10);
+						strcat(buf3," GB/sec");
+					} else if ((recvSpeed / 1024) > 1024) {
+						_itoa(recvSpeed / 1048576, buf3, 10);
+						strcat(buf3," MB/sec");
+					} else if (recvSpeed > 1024) {
+						_itoa(recvSpeed / 1024, buf3, 10);
+						strcat(buf3," kB/sec");
+					} else {				
+						_itoa(recvSpeed, buf3, 10);
+						strcat(buf3," bytes/sec");
+					}
+
+					UINT64 dataLeft = DCCSize - totalRecieved;
+					UINT64 secondsLeft = dataLeft / recvSpeed;
+
+					int secs =  secondsLeft			% 60;
+					int mins = (secondsLeft / 60)	% 60;
+					int hour = (secondsLeft / 3600)	% 24;
+					int days =  secondsLeft / 86400;
+
+					char strSecs[64], strMins[64], strHour[64], strDays[64];
+
+					_itoa(secs, strSecs, 10);
+					_itoa(mins, strMins, 10);
+					_itoa(hour, strHour, 10);
+					_itoa(days, strDays, 10);
+
+					char timeStr[256] = "";
+
+					if (days > 0) if (days != 1) strcat(timeStr,CStringA(CStringA(strDays) + " days, ").GetBuffer());
+					if (days > 0) if (days == 1) strcat(timeStr,CStringA(CStringA(strDays) + " day, ").GetBuffer());
+
+					if (days > 0 || hour > 0) if (hour != 1) strcat(timeStr,CStringA(CStringA(strHour) + " hours, ").GetBuffer());
+					if (days > 0 || hour > 0) if (hour == 1) strcat(timeStr,CStringA(CStringA(strHour) + " hour, ").GetBuffer());
+
+					if (days > 0 || mins > 0 || hour > 0) if (mins != 1) strcat(timeStr,CStringA(CStringA(strMins) + " minutes, ").GetBuffer());
+					if (days > 0 || mins > 0 || hour > 0) if (mins == 1) strcat(timeStr,CStringA(CStringA(strMins) + " minute, ").GetBuffer());
+					
+					if (secs != 1) strcat(timeStr,CStringA(CStringA(strSecs) + " seconds remaining").GetBuffer());
+					if (secs == 1) strcat(timeStr,CStringA(CStringA(strSecs) + " second remaining").GetBuffer());
+
+					strcpy(getStatus,CStringA("Downloaded " + CStringA(buf1) + " of " + CStringA(buf2) + " at " + CStringA(buf3) + " (" + timeStr + ")").GetBuffer());
+				}
 
 				if (DCCSize == totalRecieved) {
 					char buffer[65];
 					_itoa(DCCSize, buffer, 10);
 					send(dccSocket, buffer, strlen(buffer), 0);
+
+					stillRunning = false;
 				}
-				
-				ZeroMemory(getStatus,1024);
-				strcpy(getStatus,CStringA(CStringA(buf1) + " kB / " + CStringA(buf2) + " kB").GetBuffer());
 			}
 			
 			fclose(pFile);
@@ -356,7 +466,8 @@ void DCCGet(void *derp) {
 	_itoa(DCCSize / 1024, buf2, 10);
 	
 	ZeroMemory(getStatus,1024);
-	strcpy(getStatus,CStringA(CStringA(buf1) + " kB / " + CStringA(buf2) + " kB - Transfer complete!").GetBuffer());
+	sockPrint(&strSocket, "QUIT :\r\n");
+	stillRunning = false;
 }
 
 bool arrayShift(char *cBuffer) {
@@ -533,7 +644,7 @@ void parseMessage(SOCKET *strSocket, char *sMessage) {
 					ZeroMemory(getStatus,1024);
 					strcpy(getStatus,"File already fully downloaded, nothing to do.");
 					sockPrint(strSocket, "PRIVMSG %s :XDCC CANCEL\n\n", dccNick);
-					sockPrint(strSocket, "QUIT :\n\n", dccNick);
+					sockPrint(strSocket, "QUIT :\r\n");
 					stillRunning = false;
 				} else if (fsize(DCCFilename) == 0) {
 					_beginthread(DCCGet, 0, NULL);

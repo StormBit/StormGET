@@ -35,7 +35,7 @@ UINT ExitStormGET(LPVOID pParam);
 UINT InitStormGET(LPVOID pParam);
 int wildcmp(const char *wild, const char *string);
 
-bool isDling = false, queueRunning = false, assumeError = true, killAria = false, ExitOK = false;
+bool isDling = false, queueRunning = false, assumeError = true, killAria = false, ExitOK = false, killPlugin = false;
 int CurrentFile, Aria2PID = 0;
 
 // CAboutDlg dialog used for App About
@@ -461,13 +461,19 @@ UINT DownloadFiles(LPVOID pParam) {
 				typedef char * (*PluginStatus)();
 				typedef int (*PluginProgress)();
 				typedef bool (*PluginStillRunning)();
+				typedef char * (*PluginStatusLine2)();
+				typedef char * (*PluginGetName)();
+				typedef bool (*PluginStop)();
+
 				HMODULE StormGETPluginDLL = LoadLibrary(CString(L"Plugins\\" + PluginDLL));
 				PluginDownload StormGETPluginDownload = (PluginDownload)GetProcAddress(StormGETPluginDLL,"StormGETPluginDownload");
 				PluginStatus StormGETPluginGetStatus = (PluginStatus)GetProcAddress(StormGETPluginDLL,"StormGETPluginGetStatus");
-				PluginStatus StormGETPluginGetStatusLine2 = (PluginStatus)GetProcAddress(StormGETPluginDLL,"StormGETPluginGetStatusLine2");
-				PluginStatus StormGETPluginGetName = (PluginStatus)GetProcAddress(StormGETPluginDLL,"StormGETPluginGetName");
+				PluginStatusLine2 StormGETPluginGetStatusLine2 = (PluginStatus)GetProcAddress(StormGETPluginDLL,"StormGETPluginGetStatusLine2");
+				PluginGetName StormGETPluginGetName = (PluginStatus)GetProcAddress(StormGETPluginDLL,"StormGETPluginGetName");
 				PluginProgress StormGETPluginGetProgress = (PluginProgress)GetProcAddress(StormGETPluginDLL,"StormGETPluginGetProgress");
 				PluginStillRunning StormGETPluginStillRunning = (PluginStillRunning)GetProcAddress(StormGETPluginDLL,"StormGETPluginStillRunning");
+				PluginStop StormGETPluginStop = (PluginStop)GetProcAddress(StormGETPluginDLL,"StormGETPluginStop");
+
 				m_FileQueue->SetItemText(i, 0, L"Downloading");
 				if (StormGETPluginGetStatusLine2() != NULL) pwnd->SetDlgItemTextW(IDC_ETA, CString(StormGETPluginGetStatusLine2()));
 				else if (StormGETPluginGetName() != NULL) pwnd->SetDlgItemTextW(IDC_ETA, L"Downloading with " + CString(StormGETPluginGetName()));
@@ -481,6 +487,14 @@ UINT DownloadFiles(LPVOID pParam) {
 				while(1) { // Main loop to update the interface. Should update at minimum every 500ms. 
 					if (!StormGETPluginStillRunning()) {
 						break;
+					}
+
+					Sleep(100);
+					if (killPlugin) {
+						StormGETPluginStop();
+
+						exitCode = false;
+						killPlugin = false;
 					}
 
 					char * cBuffer;
@@ -747,7 +761,7 @@ UINT ExitStormGET(LPVOID pParam) {
 	si.cb = sizeof(si);
 	ZeroMemory( &pi, sizeof(pi) );
 
-	pwnd->SetDlgItemTextW(IDC_STATUS, CString(L"Cleaning up..."));
+	pwnd->SetDlgItemTextW(IDC_STATUS, CString(L"Cleaning up: Stopping aria2c..."));
 
 	if (Aria2PID != 0) {
 		CString pid;
@@ -756,6 +770,10 @@ UINT ExitStormGET(LPVOID pParam) {
 		CreateProcess(NULL, CString(L"taskkill.exe /F /PID " + pid).GetBuffer(), NULL, NULL, false, CREATE_NO_WINDOW, NULL, NULL, &si, &pi);
 		WaitForSingleObject(pi.hProcess, INFINITE);
 	}
+
+	pwnd->SetDlgItemTextW(IDC_STATUS, CString(L"Cleaning up: Stopping and cleaning up plugins..."));
+
+	killPlugin = true;
 
 	typedef bool (*PluginExit)();
 	CFileFind ExitPlugins;
@@ -831,6 +849,8 @@ void CStormGETDlg::OnStopDownload()
 
 	CListCtrl* m_FileQueue = (CListCtrl*)GetDlgItem(IDC_LIST3);
 
+	SetDlgItemTextW(IDC_STATUS, L"Stopping aria2c...");
+
 	if (Aria2PID != 0) {
 		CString pid;
 		pid.Format(L"%d",Aria2PID);
@@ -839,16 +859,9 @@ void CStormGETDlg::OnStopDownload()
 		WaitForSingleObject(pi.hProcess, INFINITE);
 	}
 
-	typedef bool (*PluginExit)();
-	CFileFind ExitPlugins;
-	BOOL bWorking = ExitPlugins.FindFile(L"Plugins\\host_*.dll");
-	while (bWorking) {
-		bWorking = ExitPlugins.FindNextFile();
-		HMODULE StormGETPluginDLL = LoadLibrary(CString(L"Plugins\\" + ExitPlugins.GetFileName()));
-		PluginExit StormGETPluginExit = (PluginExit)GetProcAddress(StormGETPluginDLL,"StormGETPluginExit");
-		StormGETPluginExit();
-		FreeLibrary(StormGETPluginDLL);
-	}
+	killPlugin = true;
+	SetDlgItemTextW(IDC_STATUS, L"Stopping plugins...");
+	while (killPlugin) Sleep(100);
 
 	SetDlgItemTextW(IDC_STATUS, L"");
 	SetDlgItemTextW(IDC_ETA, L"");

@@ -75,6 +75,25 @@ extern "C" _declspec(dllexport) bool StormGETPluginInit() {
 	return TRUE;
 }
 
+extern "C" _declspec(dllexport) bool StormGETPluginStop() {
+	STARTUPINFO si;
+	PROCESS_INFORMATION pi;
+
+	ZeroMemory( &si, sizeof(si) );
+	si.cb = sizeof(si);
+	ZeroMemory( &pi, sizeof(pi) );
+
+	if (BandcampDLPID != 0) {
+		CString pid;
+		pid.Format(L"%d",BandcampDLPID);
+
+		CreateProcess(NULL, CString(L"taskkill.exe /F /PID " + pid).GetBuffer(), NULL, NULL, false, CREATE_NO_WINDOW, NULL, NULL, &si, &pi);
+		WaitForSingleObject(pi.hProcess, INFINITE);
+	}
+
+	return TRUE;
+}
+
 extern "C" _declspec(dllexport) bool StormGETPluginExit() {
 	STARTUPINFO si;
 	PROCESS_INFORMATION pi;
