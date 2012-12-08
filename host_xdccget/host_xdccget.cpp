@@ -64,6 +64,7 @@ char*	dccNick;
 char*	dccNum;
 int		percentDone = 0;
 bool	stillRunning = true;
+bool	dccFuncRun = false;
 
 char	getStatus[1024] = "Initializing...";
 char	getStatus2[1024] = "Initializing StormGET XDCC Downloader...";
@@ -298,6 +299,10 @@ void SpeedCalc (void *derp) {
 }
 
 void DCCGet(void *derp) {
+	if (dccFuncRun) return;
+
+	dccFuncRun = true;
+
 	SOCKADDR_IN dccServerInfo;
     WSADATA wsaData;
     LPHOSTENT hostEntry;
