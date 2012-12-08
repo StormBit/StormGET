@@ -361,7 +361,6 @@ void DCCGet(void *derp) {
 
 				percentDone = (totalRecieved / (DCCSize / 100));
 
-
 				char buf1[128];
 				if ((totalRecieved / 1024) > 1048576) {
 					_itoa(totalRecieved / 1073741824, buf1, 10);
@@ -391,7 +390,7 @@ void DCCGet(void *derp) {
 					_itoa(DCCSize, buf2, 10);
 					strcat(buf2," bytes ");
 				}
-				
+
 				ZeroMemory(getStatus,1024);
 				if (!speedCalculated) strcpy(getStatus,CStringA("Downloaded " + CStringA(buf1) + " of " + CStringA(buf2) + " (Calculating...)").GetBuffer());
 				else {
@@ -412,6 +411,7 @@ void DCCGet(void *derp) {
 					}
 
 					UINT64 dataLeft = DCCSize - totalRecieved;
+					if (recvSpeed == 0) recvSpeed = 1; 
 					UINT64 secondsLeft = dataLeft / recvSpeed;
 
 					int secs =  secondsLeft			% 60;
@@ -582,7 +582,7 @@ void parseMessage(SOCKET *strSocket, char *sMessage) {
 	}
 	if (cMessage->szArg[1] != NULL) {
 		if (!strcmp(cMessage->szArg[1],"\1VERSION\1")) {
-			sockPrint(strSocket, "NOTICE %s :irssi v0.8.15 - running on Windows x86_64\n\n", cMessage->szNick);
+			sockPrint(strSocket, "NOTICE %s :\1VERSION XChat 2.8.9 (compatible; StormGET v1.1)\1\n\n", cMessage->szNick);
 		}
 	} 	
 
