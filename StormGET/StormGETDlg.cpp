@@ -35,8 +35,9 @@ UINT ExitStormGET(LPVOID pParam);
 UINT InitStormGET(LPVOID pParam);
 int wildcmp(const char *wild, const char *string);
 
-bool isDling = false, queueRunning = false, assumeError = true, killAria = false, ExitOK = false, killPlugin = false;
+bool isDling = false, queueRunning = false, assumeError = true, killAria = false, ExitOK = false, killPlugin = false, inPlugin = false, stopDownloading = false;
 int CurrentFile, Aria2PID = 0;
+CWinThread* pDownloadFiles;
 
 // CAboutDlg dialog used for App About
 
@@ -114,6 +115,9 @@ ON_COMMAND(ID_SESSION_ADDFROMCLIPBOARD, &CStormGETDlg::OnAddFromClipboard)
 ON_COMMAND(ID_STOPDOWNLOAD, &CStormGETDlg::OnStopDownload)
 ON_COMMAND(ID_RESET, &CStormGETDlg::OnReset)
 ON_COMMAND(ID_PLUGINCONFIG, &CStormGETDlg::OnPluginConfig)
+ON_COMMAND(LOADSESSION, &CStormGETDlg::OnLoadSession)
+ON_COMMAND(SAVESESSION, &CStormGETDlg::OnSaveSession)
+ON_COMMAND(LOADSESSIONRESET, &CStormGETDlg::OnLoadSessionReset)
 END_MESSAGE_MAP()
 
 
@@ -430,6 +434,7 @@ UINT DownloadFiles(LPVOID pParam) {
 	queueRunning = true;
 
 	for (int i = 0; i < m_FileQueue->GetItemCount(); i++){
+		if (stopDownloading) { queueRunning = false; break; }
 		CurrentFile = i;
 		if (m_FileQueue->GetItemText(i, 0) != L"Done") {
 			char* conditions;
@@ -457,6 +462,8 @@ UINT DownloadFiles(LPVOID pParam) {
 				FreeLibrary(StormGETPluginDLL);
 			}
 			if (PluginFound) {
+				inPlugin = true;
+
 				typedef void (*PluginDownload)(CString, CString);
 				typedef char * (*PluginStatus)();
 				typedef int (*PluginProgress)();
@@ -505,6 +512,8 @@ UINT DownloadFiles(LPVOID pParam) {
 
 					m_Prog->SetPos(StormGETPluginGetProgress());
 				}
+
+				inPlugin = false;
 
 				m_FileQueue->SetItemText(i, 0, L"Cleaning up...");
 				m_Prog->SetPos(0);
@@ -565,6 +574,8 @@ UINT DownloadFiles(LPVOID pParam) {
 					m_FileQueue->SetItemText(i, 0, L"Error!");
 				}
 			}
+
+			inPlugin = false;
 		}
 	}
 
@@ -579,7 +590,7 @@ UINT DownloadFiles(LPVOID pParam) {
 void CStormGETDlg::OnBnClickedButton3()
 {
 	CWnd* pwnd = AfxGetMainWnd(); // Pointer to main window
-	CWinThread* pDownloadFiles = AfxBeginThread(DownloadFiles,pwnd,THREAD_PRIORITY_NORMAL);
+	pDownloadFiles = AfxBeginThread(DownloadFiles,pwnd,THREAD_PRIORITY_NORMAL);
 }
 
 
@@ -771,9 +782,14 @@ UINT ExitStormGET(LPVOID pParam) {
 		WaitForSingleObject(pi.hProcess, INFINITE);
 	}
 
-	pwnd->SetDlgItemTextW(IDC_STATUS, CString(L"Cleaning up: Stopping and cleaning up plugins..."));
+	pwnd->SetDlgItemTextW(IDC_STATUS, CString(L"Cleaning up: Stopping plugins..."));
 
 	killPlugin = true;
+	while (inPlugin) {
+		Sleep(10);
+	}
+
+	pwnd->SetDlgItemTextW(IDC_STATUS, CString(L"Cleaning up: Cleaning up plugins..."));
 
 	typedef bool (*PluginExit)();
 	CFileFind ExitPlugins;
@@ -849,6 +865,8 @@ void CStormGETDlg::OnStopDownload()
 
 	CListCtrl* m_FileQueue = (CListCtrl*)GetDlgItem(IDC_LIST3);
 
+	stopDownloading = true;
+
 	SetDlgItemTextW(IDC_STATUS, L"Stopping aria2c...");
 
 	if (Aria2PID != 0) {
@@ -861,7 +879,10 @@ void CStormGETDlg::OnStopDownload()
 
 	killPlugin = true;
 	SetDlgItemTextW(IDC_STATUS, L"Stopping plugins...");
-	while (killPlugin) Sleep(100);
+	if (inPlugin) while (killPlugin);
+
+	while(queueRunning);
+	stopDownloading = false;
 
 	SetDlgItemTextW(IDC_STATUS, L"");
 	SetDlgItemTextW(IDC_ETA, L"");
@@ -885,3 +906,107 @@ void CStormGETDlg::OnPluginConfig()
 
 	ConfigurePlugins->DoModal();
 }
+
+
+void CStormGETDlg::OnLoadSession()
+{
+	CListCtrl* m_FileQueue = (CListCtrl*)GetDlgItem(IDC_LIST3);
+	CProgressCtrl* m_progBar = (CProgressCtrl*)GetDlgItem(IDC_PROGRESS1);
+
+	TCHAR szFilters[]= _T("StormGET CSV Session File (*.csv)|*.csv|All Files (*.*)|*.*||");
+	CFileDialog fileDlg(true, _T("csv"), _T("StromGET.csv"), OFN_FILEMUSTEXIST | OFN_HIDEREADONLY, szFilters);
+
+	if(fileDlg.DoModal() == IDOK) {
+		CString pathName = fileDlg.GetPathName();
+		
+		SetDlgItemTextW(IDC_STATUS, L"Restoring session...");
+
+		FILE * Session = _wfopen(pathName,L"r");
+
+		int c=0;while(!fscanf(Session,"%*[^\n]%*c"))c++;fseek(Session,0,SEEK_SET);
+
+		INT32 nLower, nUpper;
+		m_progBar->GetRange( nLower, nUpper );
+
+		m_progBar->SetRange32(0, c);
+
+		char line[8192];
+		char segment[8192];
+
+		int currLine = 0;
+		while(fgets(line,8192,Session)) {
+			currLine++;
+
+			int nItem = m_FileQueue->GetItemCount();
+
+			LVITEM lvItem;
+			lvItem.mask = LVIF_TEXT;
+			lvItem.iItem = nItem;
+			nItem++;
+			lvItem.iSubItem = 0;
+			lvItem.pszText = L"";
+			nItem = m_FileQueue->InsertItem(&lvItem);
+
+			strcpy(segment,strtok(line,","));
+			m_FileQueue->SetItemText(nItem, 0, CString(segment));
+			strcpy(segment,strtok(NULL,","));
+			m_FileQueue->SetItemText(nItem, 1,CString(segment));
+			strcpy(segment,strtok(NULL,"\n"));
+			m_FileQueue->SetItemText(nItem, 2, CString(segment));
+
+			m_progBar->SetPos(currLine);
+		}
+
+		SetDlgItemTextW(IDC_STATUS, L"");
+		m_progBar->SetRange32(nLower, nUpper);
+		m_progBar->SetPos(0);
+		stopDownloading = false;
+	}
+}
+
+void CStormGETDlg::OnLoadSessionReset()
+{
+	CStormGETDlg::OnReset();
+
+	CStormGETDlg::OnLoadSession();
+}
+
+void CStormGETDlg::OnSaveSession()
+{
+	CListCtrl* m_FileQueue = (CListCtrl*)GetDlgItem(IDC_LIST3);
+
+	if (m_FileQueue->GetItemCount()) {
+		TCHAR szFilters[]= _T("StormGET CSV Session File (*.csv)|*.csv|All Files (*.*)|*.*||");
+		CFileDialog fileDlg(false, _T("csv"), _T("StromGET.csv"), NULL, szFilters);
+
+		if(fileDlg.DoModal() == IDOK) {
+			CString pathName = fileDlg.GetPathName();
+		
+			SetDlgItemTextW(IDC_STATUS, CString(L"Saving session..."));
+			CProgressCtrl* m_Prog = (CProgressCtrl*)GetDlgItem(IDC_PROGRESS1);
+			
+			INT32 nLower, nUpper;
+			m_Prog->GetRange( nLower, nUpper );
+
+			m_Prog->SetRange32(0, m_FileQueue->GetItemCount());
+		
+			FILE* fSession = _wfopen(CString(pathName),L"w");
+		
+			for (int i = 0; i < m_FileQueue->GetItemCount(); i++){
+				fputws(CString(m_FileQueue->GetItemText(i, 0) + L"," + m_FileQueue->GetItemText(i, 1) + L"," + m_FileQueue->GetItemText(i, 2) + L"\n"),fSession);
+				m_Prog->SetPos(i);
+			}
+			fclose(fSession);
+			m_Prog->SetPos(0);
+			SetDlgItemTextW(IDC_STATUS, CString(L""));
+
+			m_Prog->SetRange32(nLower, nUpper);
+			m_Prog->SetPos(0);
+		}
+	} else {
+		AfxMessageBox(L"You cannot save an empty queue!");
+	}
+}
+
+
+

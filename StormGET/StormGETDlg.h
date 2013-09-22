@@ -53,4 +53,7 @@ public:
 	afx_msg void OnStopDownload();
 	afx_msg void OnReset();
 	afx_msg void OnPluginConfig();
+	afx_msg void OnLoadSession();
+	afx_msg void OnSaveSession();
+	afx_msg void OnLoadSessionReset();
 };

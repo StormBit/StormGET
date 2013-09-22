@@ -107,7 +107,6 @@ move /Y "$(SolutionDir)$(ConfigurationName)\$(TargetFileName)" "$(SolutionDir)St
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <None Include="bin1.bin" />
     <None Include="host_xdccget.def" />
     <None Include="res\host_xdccget.rc2" />
   </ItemGroup>
