@@ -63,7 +63,7 @@ namespace bandcampdl
                         filePath = filePath.Replace(item, '_');
                     filePath = filePath.Replace(": ", " - ").Replace('/', '-').Replace('\\', '-');
                     filePath = Path.ChangeExtension(Path.Combine(albumPath, filePath), "mp3");
-                    client.DownloadFile(data.trackinfo[i].file, filePath);
+                    client.DownloadFile(data.trackinfo[i].file["mp3-128"], filePath);
                     IdSharp.Tagging.ID3v2.ID3v2Tag tag = new IdSharp.Tagging.ID3v2.ID3v2Tag(filePath);
                     tag.Album = data.current.title;
                     tag.AlbumArtist = tag.Artist = data.artist;
@@ -90,7 +90,7 @@ namespace bandcampdl
 
         public static DateTime ParseDateFromJson(string date)
         {
-            return DateTime.ParseExact(date, "ddd MMM dd HH:mm:ss UTC yyyy", System.Globalization.DateTimeFormatInfo.InvariantInfo, System.Globalization.DateTimeStyles.AssumeUniversal).ToUniversalTime();
+            return DateTime.ParseExact(date, "dd MMM yyyy HH:mm:ss GMT", System.Globalization.DateTimeFormatInfo.InvariantInfo, System.Globalization.DateTimeStyles.AssumeUniversal).ToUniversalTime();
         }
     }
 }

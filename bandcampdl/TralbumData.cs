@@ -11,9 +11,9 @@ namespace bandcampdl
     {
         public class Current
         {
-            public string release_date;
+            public string publish_date;
             [JsonIgnore]
-            public DateTime release_date_datetime { get { return Program.ParseDateFromJson(release_date); } }
+            public DateTime release_date_datetime { get { return Program.ParseDateFromJson(publish_date); } }
             public string about;
             public string credits;
             public string title;
@@ -25,7 +25,7 @@ namespace bandcampdl
             public string has_info;
             public string title;
             public string title_link;
-            public string file;
+            public Dictionary<string, string> file;
         }
         public TrackInfo[] trackinfo;
         public string artist;
