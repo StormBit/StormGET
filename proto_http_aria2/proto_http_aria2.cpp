@@ -1,4 +1,4 @@
-// host_bandcamp.cpp : Defines the initialization routines for the DLL.
+// proto_http_aria2.cpp : Defines the initialization routines for the DLL.
 //
 
 #include "stdafx.h"
@@ -23,10 +23,18 @@ char cBufferArchive[BUFSIZE];
 
 bool CheckOutput = false, Downloading = false;
 
-int BandcampDLPID = 0;
+int Aria2PID = 0, ProgressPercent = 0;
 
 UINT ParseOutput(LPVOID pParam) {
-	Downloading = true;
+	char cBufferLocal[BUFSIZE];
+	char *cLinePos, *cLine;
+	CString currLine;
+
+	char * cToken;
+	
+	CString Downloaded, Total, Percent, Speed, ETA, ETAFormatted, Connections, FileCurrent, FileTotal;
+	char *downloaded, *total, *percent, *speed, *eta, *connections;
+	int Progress = 0;
 
 	DWORD dwRead; 
 	BOOL bSuccess = FALSE;
@@ -36,19 +44,88 @@ UINT ParseOutput(LPVOID pParam) {
 		while (CheckOutput) {
 			Sleep(50);
 		}
-
+			
 		ZeroMemory(&cBuffer,BUFSIZE);
 
-		bSuccess = ReadFile( g_hChildStd_OUT_Rd, cBuffer, BUFSIZE, &dwRead, NULL);
+		bSuccess = ReadFile( g_hChildStd_OUT_Rd, cBufferLocal, BUFSIZE, &dwRead, NULL);
 		if( ! bSuccess || dwRead == 0 ) break; 
+			   
+		for (cLine = strtok_s(cBufferLocal, "\r\n", &cLinePos); cLine; cLine = strtok_s(NULL, "\r\n", &cLinePos)) {
+			if (cLine[0] == '[' && cLine[1] == '#') {
+				cToken = strtok (cLine,":");
+					
+				downloaded = strtok(NULL,"/");
+				if (downloaded != NULL) {
+					Downloaded = CString(downloaded);
+				}
+					
+				total = strtok(NULL,"(");
+				if (total != NULL) {
+					Total = CString(total);
+				}
 
+				percent = strtok(NULL,"%");
+				if (percent != NULL) {
+					Percent = CString(percent);
+					Progress = _wtoi(Percent);
+				}
+						
+				strtok(NULL,":");
+
+				connections = strtok(NULL," ");
+				if (connections != NULL) {
+					Connections = CString(connections);
+				}
+
+				strtok(NULL,":");
+				
+				speed = strtok(NULL," ");
+				if (speed != NULL) {
+					Speed = CString(speed);
+				}
+
+				strtok(NULL,":");
+				
+				eta = strtok(NULL,"]");
+				if (eta != NULL) {
+					ETA = CString(eta);
+					ETAFormatted = L"about ";
+					CString ETAToken;
+					CString Token1 = L"", Token2 = L"", Token3 = L"";
+					int curPos = 0, numTokens = 0;
+
+					ETAToken = ETA.Tokenize(_T("hms"),curPos);
+					while (ETAToken != _T("")) {
+						numTokens++;
+						if (numTokens == 1) {
+							Token1 = ETAToken;
+						} else if (numTokens == 2) {
+							Token2 = ETAToken;
+						} else if (numTokens == 3) {
+							Token3 = ETAToken;
+						}
+
+						ETAToken = ETA.Tokenize(_T("hms"), curPos);
+					}
+
+					if (Token3.GetLength() > 0) {
+						ETAFormatted += CString(Token1 + L" hours, " + Token2 + L" minutes, " + Token3 + L" seconds remaining");
+					} else if (Token2.GetLength() > 0) {
+						ETAFormatted += CString(Token1 + L" minutes, " + Token2 + L" seconds remaining");
+					} else {
+						ETAFormatted += CString(Token1 + L" seconds remaining");
+					}
+				}
+			}
+		}
+		ProgressPercent = Progress;
+
+		strcpy(cBuffer,CStringA(L"[" + Percent + L"%] Downloaded " + Downloaded + L"/" + Total + L" at " + Speed + L" with " + Connections + L" connection(s)."));
 		CheckOutput = true;
 	}
 
-	BandcampDLPID = 0;
-	Downloading = false;
 
-	return 0;
+	return 1;
 }
 
 HMODULE GetCurrentModuleHandle() {
@@ -62,12 +139,12 @@ extern "C" _declspec(dllexport) bool StormGETPluginInit() {
     HRSRC   hRes;              // handle/ptr to res. info.
     char    *lpResLock;        // pointer to resource data
     DWORD   dwSizeRes;
-    hRes = FindResource(GetCurrentModuleHandle(),MAKEINTRESOURCE(IDR_BCDL),CString(L"BIN"));
+    hRes = FindResource(GetCurrentModuleHandle(),MAKEINTRESOURCE(IDR_ARIA2),CString(L"BIN"));
     hResourceLoaded = LoadResource(GetCurrentModuleHandle(), hRes);
     lpResLock = (char *) LockResource(hResourceLoaded);
     dwSizeRes = SizeofResource(GetCurrentModuleHandle(), hRes);
 	FILE * outputRes;
-	if(outputRes = _wfopen(L"Plugins\\Binaries\\bandcampdl.exe", L"wb")) {
+	if(outputRes = _wfopen(L"Plugins\\Binaries\\aria2c.exe", L"wb")) {
 		fwrite ((const char *) lpResLock,1,dwSizeRes,outputRes);
 		fclose(outputRes);
 	}
@@ -83,9 +160,9 @@ extern "C" _declspec(dllexport) bool StormGETPluginStop() {
 	si.cb = sizeof(si);
 	ZeroMemory( &pi, sizeof(pi) );
 
-	if (BandcampDLPID != 0) {
+	if (Aria2PID != 0) {
 		CString pid;
-		pid.Format(L"%d",BandcampDLPID);
+		pid.Format(L"%d",Aria2PID);
 
 		CreateProcess(NULL, CString(L"taskkill.exe /F /PID " + pid).GetBuffer(), NULL, NULL, false, CREATE_NO_WINDOW, NULL, NULL, &si, &pi);
 		WaitForSingleObject(pi.hProcess, INFINITE);
@@ -102,21 +179,21 @@ extern "C" _declspec(dllexport) bool StormGETPluginExit() {
 	si.cb = sizeof(si);
 	ZeroMemory( &pi, sizeof(pi) );
 
-	if (BandcampDLPID != 0) {
+	if (Aria2PID != 0) {
 		CString pid;
-		pid.Format(L"%d",BandcampDLPID);
+		pid.Format(L"%d",Aria2PID);
 
 		CreateProcess(NULL, CString(L"taskkill.exe /F /PID " + pid).GetBuffer(), NULL, NULL, false, CREATE_NO_WINDOW, NULL, NULL, &si, &pi);
 		WaitForSingleObject(pi.hProcess, INFINITE);
 	}
 
-	DeleteFile(L"Plugins\\Binaries\\bandcampdl.exe");
+	DeleteFile(L"Plugins\\Binaries\\aria2c.exe");
 
 	return TRUE;
 }
 
 extern "C" _declspec(dllexport) bool StormGETPluginConfigure() {
-	AfxMessageBox(L"The plugin host_bandcampdl requires no configuration!");
+	AfxMessageBox(L"This plugin requires no configuration!");
 	return TRUE;
 }
 
@@ -169,14 +246,14 @@ extern "C" _declspec(dllexport) void StormGETPluginDownload(CString FileURL, CSt
 
 	si.dwFlags = STARTF_USESHOWWINDOW | STARTF_USESTDHANDLES; // STARTF_USESTDHANDLES is Required.
 	si.wShowWindow = SW_HIDE; // Prevents cmd window from flashing. Requires STARTF_USESHOWWINDOW in dwFlags.
-
-	if (GetFileAttributes(DownloadDir.GetBuffer()) != INVALID_FILE_ATTRIBUTES) {
-		int Value = CreateProcess(NULL, CString(L"Plugins\\Binaries\\bandcampdl.exe " + FileURL).GetBuffer(), NULL, NULL, true, 0, NULL, DownloadDir, &si, &pi);
-	} else {
-		int Value = CreateProcess(NULL, CString(L"Plugins\\Binaries\\bandcampdl.exe " + FileURL).GetBuffer(), NULL, NULL, true, 0, NULL, NULL, &si, &pi);
+			
+	if (DownloadDir == L"") {
+		DownloadDir = L".";
 	}
 
-	BandcampDLPID = pi.dwProcessId;
+	int Value = CreateProcess(NULL, CString(L"Plugins\\Binaries\\aria2c.exe --file-allocation=none --check-certificate=false --dir \"" + DownloadDir + L"\" --max-connection-per-server 16" /* + m_FileQueue->GetItemText(i, 1) */ + L" --min-split-size 1M --split 16" /* + m_FileQueue->GetItemText(i, 1)*/ + L" " + FileURL).GetBuffer(), NULL, NULL, true, 0, NULL, NULL, &si, &pi);
+				
+	Aria2PID = pi.dwProcessId;
 
 	CWinThread* pParseOutput = AfxBeginThread(ParseOutput,THREAD_PRIORITY_NORMAL);
 }
@@ -200,52 +277,13 @@ extern "C" _declspec(dllexport) char* StormGETPluginGetStatusLine2() {
 }
 
 extern "C" _declspec(dllexport) char* StormGETPluginGetName() {
-	return "StormGET Bandcamp Plugin";
+	return "StormGET HTTP Plugin (aria2c)";
 }
 
 extern "C" _declspec(dllexport) int StormGETPluginGetProgress() {
-	char cProgressDisect[4096];
-	ZeroMemory(cProgressDisect, 4096);
-
-	int cStringLength;
-	strcpy(cProgressDisect,cBufferArchive);
-	cStringLength = strlen(cProgressDisect);
-
-	if (cProgressDisect[cStringLength - 1] == '.' && cProgressDisect[cStringLength - 2] == '.' && cProgressDisect[cStringLength - 3] == '.' && cProgressDisect[cStringLength - 4] == ')') {
-		int LastOpen;
-		int LastClose;
-
-		for(int i = 0; cProgressDisect[i]; i++) {
-			if (cProgressDisect[i] == '(') LastOpen = i;
-			if (cProgressDisect[i] == ')') LastClose = i;
-		}
-
-		for(int i = 0; i < LastOpen; i++) {
-			memmove (cProgressDisect, cProgressDisect+1, strlen (cProgressDisect+1));
-			cProgressDisect[strlen(cProgressDisect) - 1] = 0;
-		}
-
-		memmove (cProgressDisect, cProgressDisect+1, strlen (cProgressDisect+1));
-		cProgressDisect[strlen(cProgressDisect) - 5] = 0;
-
-		char * cProgressToken;
-		int CurrTrack, TotalTracks;
-
-		cProgressToken = strtok(cProgressDisect,"/");
-		CurrTrack = atoi(cProgressToken);
-
-		cProgressToken = strtok(NULL,"/");
-		TotalTracks = atoi(cProgressToken);
-
-		CurrTrack--;
-		TotalTracks--;
-
-		return (CurrTrack * 100) / TotalTracks;
-	}
-
-	return 0;
+	return ProgressPercent;
 }
 
 extern "C" _declspec(dllexport) char * StormGETPluginEnumerateConditions() {
-	return "http://*.bandcamp.com/*";
+	return "http://*";
 }

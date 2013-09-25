@@ -4,6 +4,7 @@ Microsoft Visual Studio Solution File, Format Version 11.00
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "StormGET", "StormGET\StormGET.vcxproj", "{FF75B961-697E-4BED-BEA4-E3C3E1B7F3D6}"
 	ProjectSection(ProjectDependencies) = postProject
 		{8BA38C19-F490-46BE-A50A-D728BDD4FD01} = {8BA38C19-F490-46BE-A50A-D728BDD4FD01}
+		{06E89460-D323-4647-9CCF-030BA1E945D7} = {06E89460-D323-4647-9CCF-030BA1E945D7}
 		{EBB2C0DE-6E8E-488C-A15D-C9C2565480D3} = {EBB2C0DE-6E8E-488C-A15D-C9C2565480D3}
 	EndProjectSection
 EndProject
@@ -15,6 +16,8 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "bandcampdl", "bandcampdl\bandcampdl.csproj", "{689EAA16-7310-4640-841E-D55D41F071E9}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "host_xdccget", "host_xdccget\host_xdccget.vcxproj", "{EBB2C0DE-6E8E-488C-A15D-C9C2565480D3}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "proto_http_aria2", "proto_http_aria2\proto_http_aria2.vcxproj", "{06E89460-D323-4647-9CCF-030BA1E945D7}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -66,6 +69,16 @@ Global
 		{EBB2C0DE-6E8E-488C-A15D-C9C2565480D3}.Release|Win32.ActiveCfg = Release|Win32
 		{EBB2C0DE-6E8E-488C-A15D-C9C2565480D3}.Release|Win32.Build.0 = Release|Win32
 		{EBB2C0DE-6E8E-488C-A15D-C9C2565480D3}.Release|x86.ActiveCfg = Release|Win32
+		{06E89460-D323-4647-9CCF-030BA1E945D7}.Debug|Mixed Platforms.ActiveCfg = Debug|Win32
+		{06E89460-D323-4647-9CCF-030BA1E945D7}.Debug|Mixed Platforms.Build.0 = Debug|Win32
+		{06E89460-D323-4647-9CCF-030BA1E945D7}.Debug|Win32.ActiveCfg = Debug|Win32
+		{06E89460-D323-4647-9CCF-030BA1E945D7}.Debug|Win32.Build.0 = Debug|Win32
+		{06E89460-D323-4647-9CCF-030BA1E945D7}.Debug|x86.ActiveCfg = Debug|Win32
+		{06E89460-D323-4647-9CCF-030BA1E945D7}.Release|Mixed Platforms.ActiveCfg = Release|Win32
+		{06E89460-D323-4647-9CCF-030BA1E945D7}.Release|Mixed Platforms.Build.0 = Release|Win32
+		{06E89460-D323-4647-9CCF-030BA1E945D7}.Release|Win32.ActiveCfg = Release|Win32
+		{06E89460-D323-4647-9CCF-030BA1E945D7}.Release|Win32.Build.0 = Release|Win32
+		{06E89460-D323-4647-9CCF-030BA1E945D7}.Release|x86.ActiveCfg = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

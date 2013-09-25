@@ -11,8 +11,8 @@
     </ProjectConfiguration>
   </ItemGroup>
   <PropertyGroup Label="Globals">
-    <ProjectGuid>{8BA38C19-F490-46BE-A50A-D728BDD4FD01}</ProjectGuid>
-    <RootNamespace>host_bandcamp</RootNamespace>
+    <ProjectGuid>{06E89460-D323-4647-9CCF-030BA1E945D7}</ProjectGuid>
+    <RootNamespace>proto_http_aria2</RootNamespace>
     <Keyword>MFCDLLProj</Keyword>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
@@ -41,11 +41,9 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
-    <OutDir>$(SolutionDir)$(Configuration)\</OutDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
-    <OutDir>$(SolutionDir)$(Configuration)\</OutDir>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -57,7 +55,7 @@
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <ModuleDefinitionFile>.\host_bandcamp.def</ModuleDefinitionFile>
+      <ModuleDefinitionFile>.\proto_http_aria2.def</ModuleDefinitionFile>
     </Link>
     <Midl>
       <MkTypLibCompatible>false</MkTypLibCompatible>
@@ -69,13 +67,8 @@
       <AdditionalIncludeDirectories>$(IntDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ResourceCompile>
     <PostBuildEvent>
-      <Command>move /Y "$(SolutionDir)$(ConfigurationName)\$(TargetFileName)" "$(SolutionDir)StormGET\res\host_bandcamp.dll"
-</Command>
+      <Command>move /Y "$(SolutionDir)$(ConfigurationName)\$(TargetFileName)" "$(SolutionDir)StormGET\res\proto_http_aria2.dll"</Command>
     </PostBuildEvent>
-    <PreBuildEvent>
-      <Command>move /Y "$(TargetDir)bandcampdl.exe" "$(SolutionDir)host_bandcamp\res\bandcampdl.exe"
-</Command>
-    </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
@@ -91,7 +84,7 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <ModuleDefinitionFile>.\host_bandcamp.def</ModuleDefinitionFile>
+      <ModuleDefinitionFile>.\proto_http_aria2.def</ModuleDefinitionFile>
     </Link>
     <Midl>
       <MkTypLibCompatible>false</MkTypLibCompatible>
@@ -103,17 +96,15 @@
       <AdditionalIncludeDirectories>$(IntDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ResourceCompile>
     <PostBuildEvent>
-      <Command>move /Y "$(SolutionDir)$(ConfigurationName)\$(TargetFileName)" "$(SolutionDir)StormGET\res\host_bandcamp.dll"
-</Command>
+      <Command>if $(ConfigurationName) == Release "$(SolutionDir)Libraries\upx.exe" --best --lzma "$(SolutionDir)\$(ConfigurationName)\$(TargetFileName)"
+
+move /Y "$(SolutionDir)$(ConfigurationName)\$(TargetFileName)" "$(SolutionDir)StormGET\res\proto_http_aria2.dll"</Command>
     </PostBuildEvent>
-    <PreBuildEvent>
-      <Command>move /Y "$(TargetDir)bandcampdl.exe" "$(SolutionDir)host_bandcamp\res\bandcampdl.exe"
-</Command>
-    </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <None Include="host_bandcamp.def" />
-    <None Include="res\host_bandcamp.rc2" />
+    <None Include="..\StormGET\res\aria2c.exe" />
+    <None Include="proto_http_aria2.def" />
+    <None Include="res\proto_http_aria2.rc2" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="dllmain.cpp">
@@ -124,7 +115,7 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
       </PrecompiledHeader>
     </ClCompile>
-    <ClCompile Include="host_bandcamp.cpp" />
+    <ClCompile Include="proto_http_aria2.cpp" />
     <ClCompile Include="stdafx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
@@ -136,14 +127,9 @@
     <ClInclude Include="targetver.h" />
   </ItemGroup>
   <ItemGroup>
-    <ResourceCompile Include="host_bandcamp.rc" />
+    <ResourceCompile Include="proto_http_aria2.rc" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
-  <ProjectExtensions>
-    <VisualStudio>
-      <UserProperties RESOURCE_FILE="host_bandcamp.rc" />
-    </VisualStudio>
-  </ProjectExtensions>
 </Project>

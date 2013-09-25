@@ -7,7 +7,6 @@
 #include "StormGET.h"
 #include "StormGETDlg.h"
 #include "StormGETURLBox.h"
-#include "StormGETPluginConfig.h"
 #include "Resource.h"
 
 #include "afxdialogex.h"
@@ -21,22 +20,14 @@ using namespace std;
 
 #define BUFSIZE 4096 
  
-HANDLE g_hChildStd_IN_Rd = NULL;
-HANDLE g_hChildStd_IN_Wr = NULL;
-HANDLE g_hChildStd_OUT_Rd = NULL;
-HANDLE g_hChildStd_OUT_Wr = NULL;
-
-HANDLE g_hInputFile = NULL;
-
 // Prototypes
-UINT DownloadFiles(LPVOID pParam);
-UINT ParseOutput(LPVOID pParam);
 UINT ExitStormGET(LPVOID pParam);
 UINT InitStormGET(LPVOID pParam);
+UINT DownloadFiles(LPVOID pParam);
 int wildcmp(const char *wild, const char *string);
 
-bool isDling = false, queueRunning = false, assumeError = true, killAria = false, ExitOK = false, killPlugin = false, inPlugin = false, stopDownloading = false;
-int CurrentFile, Aria2PID = 0;
+bool isDling = false, queueRunning = false, assumeError = true, ExitOK = false, killPlugin = false, inPlugin = false, stopDownloading = false;
+int CurrentFile;
 CWinThread* pDownloadFiles;
 
 // CAboutDlg dialog used for App About
@@ -114,7 +105,6 @@ ON_COMMAND(ID_HELP_ABOUTStormGET, &CStormGETDlg::OnHelpAbout)
 ON_COMMAND(ID_SESSION_ADDFROMCLIPBOARD, &CStormGETDlg::OnAddFromClipboard)
 ON_COMMAND(ID_STOPDOWNLOAD, &CStormGETDlg::OnStopDownload)
 ON_COMMAND(ID_RESET, &CStormGETDlg::OnReset)
-ON_COMMAND(ID_PLUGINCONFIG, &CStormGETDlg::OnPluginConfig)
 ON_COMMAND(LOADSESSION, &CStormGETDlg::OnLoadSession)
 ON_COMMAND(SAVESESSION, &CStormGETDlg::OnSaveSession)
 ON_COMMAND(LOADSESSIONRESET, &CStormGETDlg::OnLoadSessionReset)
@@ -155,18 +145,11 @@ BOOL CStormGETDlg::OnInitDialog()
     HRSRC   hRes;              // handle/ptr to res. info.
     char    *lpResLock;        // pointer to resource data
     DWORD   dwSizeRes;
-    hRes = FindResource(NULL,MAKEINTRESOURCE(IDR_BIN1),CString(L"BIN"));
-    hResourceLoaded = LoadResource(NULL, hRes);
-    lpResLock = (char *) LockResource(hResourceLoaded);
-    dwSizeRes = SizeofResource(NULL, hRes);
 	FILE * outputRes;
-	if(outputRes = _wfopen(L"StormGET_temp_aria2c.exe", L"wb")) {
-		fwrite ((const char *) lpResLock,1,dwSizeRes,outputRes);
-		fclose(outputRes);
-	}
 
 	CreateDirectory(L"Plugins", NULL);
-	
+	CreateDirectory(L"Plugins\\Binaries", NULL);
+
     hRes = FindResource(NULL,MAKEINTRESOURCE(IDR_BIN2),CString(L"BIN"));
     hResourceLoaded = LoadResource(NULL, hRes);
     lpResLock = (char *) LockResource(hResourceLoaded);
@@ -181,6 +164,15 @@ BOOL CStormGETDlg::OnInitDialog()
     lpResLock = (char *) LockResource(hResourceLoaded);
     dwSizeRes = SizeofResource(NULL, hRes);
 	if(outputRes = _wfopen(L"Plugins\\host_xdccget.dll", L"wb")) {
+		fwrite ((const char *) lpResLock,1,dwSizeRes,outputRes);
+		fclose(outputRes);
+	}
+
+	hRes = FindResource(NULL,MAKEINTRESOURCE(IDR_BIN4),CString(L"BIN"));
+    hResourceLoaded = LoadResource(NULL, hRes);
+    lpResLock = (char *) LockResource(hResourceLoaded);
+    dwSizeRes = SizeofResource(NULL, hRes);
+	if(outputRes = _wfopen(L"Plugins\\proto_http_aria2.dll", L"wb")) {
 		fwrite ((const char *) lpResLock,1,dwSizeRes,outputRes);
 		fclose(outputRes);
 	}
@@ -222,6 +214,14 @@ BOOL CStormGETDlg::OnInitDialog()
 	typedef bool (*PluginInit)();
 	CFileFind InitPlugins;
 	BOOL bWorking = InitPlugins.FindFile(L"Plugins\\host_*.dll");
+	while (bWorking) {
+		bWorking = InitPlugins.FindNextFile();
+		HMODULE StormGETPluginDLL = LoadLibrary(CString(L"Plugins\\" + InitPlugins.GetFileName()));
+		PluginInit StormGETPluginInit = (PluginInit)GetProcAddress(StormGETPluginDLL,"StormGETPluginInit");
+		StormGETPluginInit();
+		FreeLibrary(StormGETPluginDLL);
+	}
+	bWorking = InitPlugins.FindFile(L"Plugins\\proto_*.dll");
 	while (bWorking) {
 		bWorking = InitPlugins.FindNextFile();
 		HMODULE StormGETPluginDLL = LoadLibrary(CString(L"Plugins\\" + InitPlugins.GetFileName()));
@@ -398,32 +398,6 @@ UINT DownloadFiles(LPVOID pParam) {
 
 	CListCtrl* m_FileQueue = (CListCtrl*)pwnd->GetDlgItem(IDC_LIST3);
 
-	STARTUPINFO si;
-	PROCESS_INFORMATION pi;
-	SECURITY_ATTRIBUTES sa; 
-
-	sa.nLength = sizeof(SECURITY_ATTRIBUTES); 
-	sa.bInheritHandle = TRUE; 
-	sa.lpSecurityDescriptor = NULL; 
-
-	if ( ! CreatePipe(&g_hChildStd_OUT_Rd, &g_hChildStd_OUT_Wr, &sa, 0) ) 
-	exit(1); 
-
-	// Ensure the read handle to the pipe for STDOUT is not inherited.
-
-	if ( ! SetHandleInformation(g_hChildStd_OUT_Rd, HANDLE_FLAG_INHERIT, 0) )
-	exit(1); 
-
-	// Create a pipe for the child process's STDIN. 
-
-	if (! CreatePipe(&g_hChildStd_IN_Rd, &g_hChildStd_IN_Wr, &sa, 0)) 
-	exit(1); 
-
-	// Ensure the write handle to the pipe for STDIN is not inherited. 
-
-	if ( ! SetHandleInformation(g_hChildStd_IN_Wr, HANDLE_FLAG_INHERIT, 0) )
-	exit(1); 
-
 	CButton* bGetFile;
 
 	bGetFile = (CButton*)pwnd->GetDlgItem(IDC_BUTTON3);
@@ -460,6 +434,21 @@ UINT DownloadFiles(LPVOID pParam) {
 					PluginDLL = EnumeratePluginConditions.GetFileName();
 				}
 				FreeLibrary(StormGETPluginDLL);
+			}
+			if (!PluginFound) {
+				bWorking = EnumeratePluginConditions.FindFile(L"Plugins\\proto_*.dll");
+
+				while (bWorking) {
+					bWorking = EnumeratePluginConditions.FindNextFile();
+					HMODULE StormGETPluginDLL = LoadLibrary(CString(L"Plugins\\" + EnumeratePluginConditions.GetFileName()));
+					PluginEnumerateConditions StormGETPluginEnumerateConditions = (PluginEnumerateConditions)GetProcAddress(StormGETPluginDLL,"StormGETPluginEnumerateConditions");
+					conditions = StormGETPluginEnumerateConditions();
+					if (wildcmp(conditions, (const char *)FileURL)) {
+						PluginFound = true;
+						PluginDLL = EnumeratePluginConditions.GetFileName();
+					}
+					FreeLibrary(StormGETPluginDLL);
+				}
 			}
 			if (PluginFound) {
 				inPlugin = true;
@@ -530,52 +519,8 @@ UINT DownloadFiles(LPVOID pParam) {
 				pwnd->SetDlgItemTextW(IDC_ETA, L"");
 
 			} else {
-				DWORD exitCode = 0;
-				ZeroMemory( &si, sizeof(si) );
-				si.cb = sizeof(si);
-				ZeroMemory( &pi, sizeof(pi) );
-
-				si.hStdError = g_hChildStd_OUT_Wr;
-				si.hStdOutput = g_hChildStd_OUT_Wr;
-				si.hStdInput = g_hChildStd_IN_Rd;
-
-				si.dwFlags = STARTF_USESHOWWINDOW | STARTF_USESTDHANDLES; // STARTF_USESTDHANDLES is Required.
-				si.wShowWindow = SW_HIDE; // Prevents cmd window from flashing. Requires STARTF_USESHOWWINDOW in dwFlags.
-			
-				if (DownloadDir == L"") {
-					DownloadDir = L".";
-				}
-
-				int Value = CreateProcess(NULL, CString(L"StormGET_temp_aria2c.exe --file-allocation=none --check-certificate=false --dir \"" + DownloadDir + L"\" --max-connection-per-server " + m_FileQueue->GetItemText(i, 1) + L" --min-split-size 1M --split " + m_FileQueue->GetItemText(i, 1) + L" " + m_FileQueue->GetItemText(i, 2)).GetBuffer(), NULL, NULL, true, 0, NULL, NULL, &si, &pi);
-				
-				Aria2PID = pi.dwProcessId;
-
-				m_FileQueue->SetItemText(i, 0, L"Downloading");
-			
-				CWinThread* pParseOutput = AfxBeginThread(ParseOutput,THREAD_PRIORITY_NORMAL);
-		
-				WaitForSingleObject(pi.hProcess, INFINITE);
-
-				Aria2PID = 0;
-
-				GetExitCodeProcess(pi.hProcess,&exitCode);
-
-				if (exitCode == 0) {
-					assumeError = false;
-				}
-
-				pwnd->SetDlgItemTextW(IDC_ETA, L"");
-				pwnd->SetDlgItemTextW(IDC_STATUS, L"");
-				m_Prog->SetPos(0);
-			
-				if (assumeError == false) {
-					m_FileQueue->SetItemText(i, 0, L"Done");
-				} else { 
-					m_FileQueue->SetItemText(i, 0, L"Error!");
-				}
+				AfxMessageBox(L"No plugin was found that can handle the URL Provided.");
 			}
-
-			inPlugin = false;
 		}
 	}
 
@@ -616,119 +561,6 @@ BOOL CStormGETDlg::PreTranslateMessage(MSG* pMsg)
 	return CTrayDialog::PreTranslateMessage(pMsg);
 }
 
-UINT ParseOutput(LPVOID pParam) {	
-	CWnd* pwnd = AfxGetMainWnd(); // Pointer to main window
-	HWND hWnd = pwnd->GetSafeHwnd();
-
-	CListCtrl* m_FileQueue = (CListCtrl*)pwnd->GetDlgItem(IDC_LIST3);
-
-	char cBuffer[BUFSIZE];
-	char *cLinePos, *cLine;
-	CString currLine;
-
-	char * cToken;
-	
-	CString Downloaded, Total, Percent, Speed, ETA, ETAFormatted, Connections, FileCurrent, FileTotal;
-	char *downloaded, *total, *percent, *speed, *eta, *connections;
-	int Progress = 0;
-
-	CProgressCtrl* m_Prog = (CProgressCtrl*)pwnd->GetDlgItem(IDC_PROGRESS1);
-
-	DWORD dwRead; 
-	BOOL bSuccess = FALSE;
-	HANDLE hParentStdOut = GetStdHandle(STD_OUTPUT_HANDLE);
-
-	for (;;) { 
-		ZeroMemory(&cBuffer,BUFSIZE);
-
-		bSuccess = ReadFile( g_hChildStd_OUT_Rd, cBuffer, BUFSIZE, &dwRead, NULL);
-		if( ! bSuccess || dwRead == 0 ) break; 
-			   
-		for (cLine = strtok_s(cBuffer, "\r\n", &cLinePos); cLine; cLine = strtok_s(NULL, "\r\n", &cLinePos)) {
-			if (cLine[0] == '[' && cLine[1] == '#') {
-				cToken = strtok (cLine,":");
-					
-				downloaded = strtok(NULL,"/");
-				if (downloaded != NULL) {
-					Downloaded = CString(downloaded);
-				}
-					
-				total = strtok(NULL,"(");
-				if (total != NULL) {
-					Total = CString(total);
-				}
-
-				percent = strtok(NULL,"%");
-				if (percent != NULL) {
-					Percent = CString(percent);
-					Progress = _wtoi(Percent);
-				}
-						
-				strtok(NULL,":");
-
-				connections = strtok(NULL," ");
-				if (connections != NULL) {
-					Connections = CString(connections);
-				}
-
-				strtok(NULL,":");
-				
-				speed = strtok(NULL," ");
-				if (speed != NULL) {
-					Speed = CString(speed);
-				}
-
-				strtok(NULL,":");
-				
-				eta = strtok(NULL,"]");
-				if (eta != NULL) {
-					ETA = CString(eta);
-					ETAFormatted = L"about ";
-					CString ETAToken;
-					CString Token1 = L"", Token2 = L"", Token3 = L"";
-					int curPos = 0, numTokens = 0;
-
-					ETAToken = ETA.Tokenize(_T("hms"),curPos);
-					while (ETAToken != _T("")) {
-						numTokens++;
-						if (numTokens == 1) {
-							Token1 = ETAToken;
-						} else if (numTokens == 2) {
-							Token2 = ETAToken;
-						} else if (numTokens == 3) {
-							Token3 = ETAToken;
-						}
-
-						ETAToken = ETA.Tokenize(_T("hms"), curPos);
-					}
-
-					if (Token3.GetLength() > 0) {
-						ETAFormatted += CString(Token1 + L" hours, " + Token2 + L" minutes, " + Token3 + L" seconds remaining");
-					} else if (Token2.GetLength() > 0) {
-						ETAFormatted += CString(Token1 + L" minutes, " + Token2 + L" seconds remaining");
-					} else {
-						ETAFormatted += CString(Token1 + L" seconds remaining");
-					}
-				}
-
-				FileTotal.Format(L"%d", m_FileQueue->GetItemCount());
-				FileCurrent.Format(L"%d", CurrentFile + 1);
-			}
-		}
-		m_Prog->SetPos(Progress);
-
-		pwnd->SetDlgItemTextW(IDC_STATUS, CString(L"[" + Percent + L"%] Downloaded " + Downloaded + L"/" + Total + L" at " + Speed + L" with " + Connections + L" connection(s)."));
-		pwnd->SetDlgItemTextW(IDC_ETA, CString(L"Downloading file " + FileCurrent + L" of " + FileTotal + L", " + ETAFormatted));
-	}
-
-	m_Prog->SetPos(0);
-
-	pwnd->SetDlgItemTextW(IDC_STATUS, CString(L""));
-	pwnd->SetDlgItemTextW(IDC_ETA, CString(L""));
-
-	return 1;
-}
-
 void CStormGETDlg::OnClose()
 {
 	CTrayDialog::OnClose();
@@ -763,7 +595,6 @@ UINT ExitStormGET(LPVOID pParam) {
 
 	pwnd->SetDlgItemTextW(IDC_ETA, CString(L"Shutting down StormGET..."));
 	ExitOK = false;
-	killAria = true;
 
 	STARTUPINFO si;
 	PROCESS_INFORMATION pi;
@@ -771,16 +602,6 @@ UINT ExitStormGET(LPVOID pParam) {
 	ZeroMemory( &si, sizeof(si) );
 	si.cb = sizeof(si);
 	ZeroMemory( &pi, sizeof(pi) );
-
-	pwnd->SetDlgItemTextW(IDC_STATUS, CString(L"Cleaning up: Stopping aria2c..."));
-
-	if (Aria2PID != 0) {
-		CString pid;
-		pid.Format(L"%d",Aria2PID);
-
-		CreateProcess(NULL, CString(L"taskkill.exe /F /PID " + pid).GetBuffer(), NULL, NULL, false, CREATE_NO_WINDOW, NULL, NULL, &si, &pi);
-		WaitForSingleObject(pi.hProcess, INFINITE);
-	}
 
 	pwnd->SetDlgItemTextW(IDC_STATUS, CString(L"Cleaning up: Stopping plugins..."));
 
@@ -802,9 +623,19 @@ UINT ExitStormGET(LPVOID pParam) {
 		FreeLibrary(StormGETPluginDLL);
 	}
 
-	DeleteFile(L"StormGET_temp_aria2c.exe");
+	bWorking = ExitPlugins.FindFile(L"Plugins\\proto_*.dll");
+	while (bWorking) {
+		bWorking = ExitPlugins.FindNextFile();
+		HMODULE StormGETPluginDLL = LoadLibrary(CString(L"Plugins\\" + ExitPlugins.GetFileName()));
+		PluginExit StormGETPluginExit = (PluginExit)GetProcAddress(StormGETPluginDLL,"StormGETPluginExit");
+		StormGETPluginExit();
+		FreeLibrary(StormGETPluginDLL);
+	}
+
 	DeleteFile(L"Plugins\\host_bandcamp.dll");
 	DeleteFile(L"Plugins\\host_xdccget.dll");
+	DeleteFile(L"Plugins\\proto_http_aria2.dll");
+	RemoveDirectory(L"Plugins\\Binaries");
 	RemoveDirectory(L"Plugins");
 
 	CListCtrl* m_FileQueue = (CListCtrl*)pwnd->GetDlgItem(IDC_LIST3);
@@ -867,16 +698,6 @@ void CStormGETDlg::OnStopDownload()
 
 	stopDownloading = true;
 
-	SetDlgItemTextW(IDC_STATUS, L"Stopping aria2c...");
-
-	if (Aria2PID != 0) {
-		CString pid;
-		pid.Format(L"%d",Aria2PID);
-		
-		CreateProcess(NULL, CString(L"taskkill.exe /F /PID " + pid).GetBuffer(), NULL, NULL, false, CREATE_NO_WINDOW, NULL, NULL, &si, &pi);
-		WaitForSingleObject(pi.hProcess, INFINITE);
-	}
-
 	killPlugin = true;
 	SetDlgItemTextW(IDC_STATUS, L"Stopping plugins...");
 	if (inPlugin) while (killPlugin);
@@ -897,16 +718,6 @@ void CStormGETDlg::OnReset()
 
 	m_FileQueue->DeleteAllItems();
 }
-
-
-void CStormGETDlg::OnPluginConfig()
-{
-	CStormGETPluginConfig* ConfigurePlugins;
-	ConfigurePlugins = new CStormGETPluginConfig();
-
-	ConfigurePlugins->DoModal();
-}
-
 
 void CStormGETDlg::OnLoadSession()
 {

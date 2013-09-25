@@ -52,7 +52,7 @@ BEGIN
     "\r\n"
     "#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENU)\r\n"
     "LANGUAGE 9, 1\r\n"
-    "#include ""res\\host_xdccget.rc2""  // non-Microsoft Visual C++ edited resources\r\n"
+    "#include ""res\\proto_http_aria2.rc2""  // non-Microsoft Visual C++ edited resources\r\n"
     "#include ""afxres.rc""      // Standard components\r\n"
     "#endif\r\n"
     "\0"
@@ -61,11 +61,7 @@ END
 #endif    // APSTUDIO_INVOKED
 
 
-/////////////////////////////////////////////////////////////////////////////
-//
-// BIN
-//
-
+IDR_ARIA2              BIN                   "res\\aria2c.exe"
 #endif    // Japanese (Japan) resources
 /////////////////////////////////////////////////////////////////////////////
 
@@ -82,8 +78,8 @@ LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 1,0,0,0
- PRODUCTVERSION 1,0,0,0
+ FILEVERSION 1,0,0,1
+ PRODUCTVERSION 1,0,0,1
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -96,15 +92,15 @@ VS_VERSION_INFO VERSIONINFO
 BEGIN
     BLOCK "StringFileInfo"
     BEGIN
-        BLOCK "040904b0"
+        BLOCK "040904B0"
         BEGIN
             VALUE "CompanyName", "StormDEV"
-            VALUE "FileDescription", "StormGET XDCC Plugin"
+            VALUE "FileDescription", "StormGET HTTP Plugin for Aria2C"
             VALUE "FileVersion", "1.0.0.0"
-            VALUE "InternalName", "host_xdccget.dll"
-            VALUE "LegalCopyright", "(C) 2012 StormDEV / ReimuHakurei. All Rights Reserved."
-            VALUE "OriginalFilename", "host_xdccget.dll"
-            VALUE "ProductName", "StormGET XDCC Plugin"
+            VALUE "InternalName", "proto_http_aria2.dll"
+            VALUE "LegalCopyright", "Copyright © 2012 StormDEV"
+            VALUE "OriginalFilename", "proto_http_aria2.dll"
+            VALUE "ProductName", "StormGET HTTP Plugin for Aria2C"
             VALUE "ProductVersion", "1.0.0.0"
         END
     END
@@ -131,7 +127,7 @@ END
 
 #if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENU)
 LANGUAGE 9, 1
-#include "res\host_xdccget.rc2"  // non-Microsoft Visual C++ edited resources
+#include "res\proto_http_aria2.rc2"  // non-Microsoft Visual C++ edited resources
 #include "afxres.rc"      // Standard components
 #endif
 

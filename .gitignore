@@ -8,4 +8,5 @@ ipch
 *.filters
 *.opensdf
 host_*.dll
+proto_*.dll
 bandcampdl.exe
