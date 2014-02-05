@@ -1,4 +1,7 @@
-#StormGET is a fast, lightweight, portable download manager / accelerator written in C++ using MFC.#
+StormGET
+=======
+
+StormGET is a fast, lightweight, portable download manager / accelerator written in C++ using MFC.
 
 About
 ------------
