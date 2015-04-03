@@ -107,6 +107,7 @@ if $(ConfigurationName) == Release "$(SolutionDir)Libraries\upx.exe" --best --lz
     <None Include="res\About.bmp" />
     <None Include="res\host_bandcamp.dll" />
     <None Include="res\host_xdccget.dll" />
+    <None Include="res\proto_http_aria2.dll" />
     <None Include="res\StormGET.ico" />
     <None Include="res\StormGET.rc2" />
   </ItemGroup>

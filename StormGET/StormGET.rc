@@ -26,6 +26,7 @@
 
 #if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENU)
 LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
+#pragma code_page(1252)
 
 #ifdef APSTUDIO_INVOKED
 /////////////////////////////////////////////////////////////////////////////
@@ -112,9 +113,9 @@ BEGIN
                     "MfcLink",0x0,7,170,161,10
     CONTROL         "http://www.codeproject.com/articles/1088/wildcmp.aspx",IDC_MFCLINK4,
                     "MfcLink",0x0,7,179,166,10
-    CONTROL         140,IDC_STATIC,"Static",SS_BITMAP,27,28,183,64
-    LTEXT           "StormGET 1.1b6",IDC_STATIC,7,7,64,8,SS_NOPREFIX
-    LTEXT           "Copyright Â© 2011-2012 StormDEV",IDC_STATIC,7,16,111,9
+    CONTROL         IDB_BITMAP1,IDC_STATIC,"Static",SS_BITMAP,27,28,183,64
+    LTEXT           "StormGET 1.1b7",IDC_STATIC,7,7,64,8,SS_NOPREFIX
+    LTEXT           "Copyright © 2011-2015 Alex Ingram / Karen Tsai",IDC_STATIC,7,16,225,9
     CONTROL         "http://mm.reimuhakurei.net/",IDC_MFCLINK5,"MfcLink",0x0,7,207,171,10
     LTEXT           "The Bandcamp plugin contains a modified version of bandcampdl, written by MainMemory. Visit his website at:",IDC_STATIC,7,191,225,17
     LTEXT           "The following applies to the StormGET XDCC Downloader plugin:\nThis product includes software developed by the OpenSSL Project for use in the OpenSSL Toolkit (http://www.openssl.org/). ",IDC_STATIC,7,218,225,25
@@ -161,8 +162,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 1,1,0,6
- PRODUCTVERSION 1,1,0,6
+ FILEVERSION 1,1,0,7
+ PRODUCTVERSION 1,1,0,7
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -179,12 +180,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "StormDEV"
             VALUE "FileDescription", "StormGET"
-            VALUE "FileVersion", "1.1.0.6"
+            VALUE "FileVersion", "1.1.0.7"
             VALUE "InternalName", "StormGET.exe"
-            VALUE "LegalCopyright", "Copyright Â© 2011-2012 StormDEV, All Rights Reserved."
+            VALUE "LegalCopyright", "Copyright © 2011-2015 Alex Ingram / Karen Tsai, All Rights Reserved."
             VALUE "OriginalFilename", "StormGET.exe"
             VALUE "ProductName", "StormGET - Fast, extensible download accelerator"
-            VALUE "ProductVersion", "1.1.0.6"
+            VALUE "ProductVersion", "1.1.0.7"
         END
     END
     BLOCK "VarFileInfo"
